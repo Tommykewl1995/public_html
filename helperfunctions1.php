@@ -742,6 +742,110 @@ function createarticle($userid,$header,$summary,$link,$details,$preference,$imag
   }
 }
 
+/**
+ * Community class
+ */
+class Community{
+  function __construct($db, $commuid = null, $creatorid = null){
+    $this->db = $db;
+    $this->commuid = $commuid;
+    $this->creatorid = $creatorid;
+    if(is_null($creatorid) && !is_null($commuid)){
+      $query = $this->db->prepare("SELECT CreatorID FROM ComDetails WHERE CommuID = :CommuID");
+      $query->bindParam(":CommuID", $commuid, PDO::PARAM_INT);
+      $query->execute();
+      $que = $query->fetch();
+      $this->creatorid = $que['CreatorID'];
+    }
+  }
+
+  public static function createcommunity($name, $type, $creatorid, $db, $status = null){
+    if(is_null($status)){
+      $status = "Welcome";
+    }
+    $result = $db->prepare("INSERT INTO ComDetails (CreatorID, Name, ComType, Status) VALUES (:CreatorID, :Name, :ComType, :Status)");
+    $result->bindParam(":CreatorID", $creatorid, PDO::PARAM_INT);
+    $result->bindParam(":Name", $name, PDO::PARAM_STR);
+    $result->bindParam(":ComType", $type, PDO::PARAM_INT);
+    $result->bindParam(":Status", $status, PDO::PARAM_STR);
+    $result->execute();
+    return new Community($db, $db->lastInsertId());
+  }
+
+  function adddoctorstocommunity(){
+
+  }
+
+  function addclinicstocommunity($clinic){
+    $temppin = (string)generatePIN(4);
+    $name = strtolower(strtok($clinic['Name'], " "))."@".$temppin;
+    $password = generatePIN(8);
+    $password1 = Bcrypt::hashPassword($password);
+    $result = $this->db->prepare("INSERT INTO clinics (CommuID, ClinicName, Summary, Address, City, PinCode, ClinicEmail, ClinicPhone, ClinicLogo, AssistName, AssistPassword) VALUES (:CommuID, :ClinicName, :Summary, :Address, :City, :PinCode, :ClinicEmail, :ClinicPhone, :ClinicLogo, :AssistName, :AssistPassword)")
+    $result->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
+    $result->bindParam(":ClinicName", $clinic['Name'], PDO::PARAM_STR);
+    $result->bindParam(":Summary", $clinic['Summary'], PDO::PARAM_STR);
+    $result->bindParam(":Address", $clinic['Address'], PDO::PARAM_STR);
+    $result->bindParam(":City", $clinic['City'], PDO::PARAM_STR);
+    $result->bindParam(":PinCode", $clinic['PinCode'], PDO::PARAM_STR);
+    $result->bindParam(":ClinicEmail", $clinic['ClinicEmail'], PDO::PARAM_STR);
+    $result->bindParam(":ClinicPhone", $clinic['ClinicPhone'], PDO::PARAM_STR);
+    $result->bindParam(":ClinicLogo", $clinic['ClinicLogo'], PDO::PARAM_STR);
+    $result->bindParam(":AssistName", $name, PDO::PARAM_STR);
+    $result->bindParam(":AssistPassword", $password1, PDO::PARAM_STR);
+  }
+
+  function removeclinicsfromcommunity($clinicid){
+    $result = $this->db->prepare("DELETE FROM clinicdoctors WHERE ClinicID = :ClinicID");
+    $result->bindParam(":ClinicID", $clinicid, PDO::PARAM_INT);
+    $result->execute();
+    $result1 = $this->db->prepare("DELETE FROM clinics WHERE ClinicID = :ClinicID");
+    $result1->bindParam(":ClinicID", $clinicid, PDO::PARAM_INT);
+    $result1->execute();
+  }
+
+  function editclinics($clinic){
+    $result = $this->db->prepare("UPDATE clinics SET ClinicName = :ClinicName, Summary = :Summary, Address = :Address, City = :City, PinCode = :PinCode, ClinicEmail = :ClinicEmail, ClinicPhone = :ClinicPhone, ClinicLogo = :ClinicLogo, AssistName = :AssistName, AssistPassword = :AssistPassword WHERE ClinicID = :ClinicID");
+    $result->bindParam(":ClinicID", $clinic['ClinicID'], PDO::PARAM_INT);
+    $result->bindParam(":ClinicName", $clinic['Name'], PDO::PARAM_STR);
+    $result->bindParam(":Summary", $clinic['Summary'], PDO::PARAM_STR);
+    $result->bindParam(":Address", $clinic['Address'], PDO::PARAM_STR);
+    $result->bindParam(":City", $clinic['City'], PDO::PARAM_STR);
+    $result->bindParam(":PinCode", $clinic['PinCode'], PDO::PARAM_STR);
+    $result->bindParam(":ClinicEmail", $clinic['ClinicEmail'], PDO::PARAM_STR);
+    $result->bindParam(":ClinicPhone", $clinic['ClinicPhone'], PDO::PARAM_STR);
+    $result->bindParam(":ClinicLogo", $clinic['ClinicLogo'], PDO::PARAM_STR);
+    $result->bindParam(":AssistName", $name, PDO::PARAM_STR);
+    $result->bindParam(":AssistPassword", $password1, PDO::PARAM_STR);
+  }
+
+  function addmemberstocommunity($commuid, $userid, $type){
+    $result = $this->db->prepare("INSERT INTO Dconnection (CommuID,UserID,UserType) VALUES (:CommuID, :UserID, :UserType)");
+    $result->bindParam(":CommuID", $commuid, PDO::PARAM_INT);
+    $result->bindParam(":UserID", $userid, PDO::PARAM_INT);
+    $result->bindParam(":UserType", $type, PDO::PARAM_INT);
+    $result->execute();
+    return $this->db->lastInsertId();
+  }
+
+  function removemembersfromcommunity($commuid, $userid){
+    $result = $this->db->prepare("DELETE FROM Dconnection WHERE CommuID = :CommuID AND UserID = :UserID");
+    $result->bindParam(":CommuID", $commuid, PDO::PARAM_INT);
+    $result->bindParam(":UserID", $userid, PDO::PARAM_INT);
+    $result->execute();
+    return $this->db->lastInsertId();
+  }
+
+  function editmembers($commuid, $userid, $type){
+    $result = $this->db->prepare("UPDATE Dconnection SET UserType = :UserType WHERE CommuID = :CommuID AND UserID = :UserID");
+    $result->bindParam(":CommuID", $commuid, PDO::PARAM_INT);
+    $result->bindParam(":UserID", $userid, PDO::PARAM_INT);
+    $result->bindParam(":UserType", $type, PDO::PARAM_INT);
+    $result->execute();
+  }
+}
+
+
 function createcommunity($name,$userid,$Type,$db){
   $result = $db->prepare("INSERT INTO ComDetails (Name,ComType) VALUES (:Name,:ComType)");
   $result->bindParam(":Name", $name, PDO::PARAM_STR);
@@ -750,12 +854,6 @@ function createcommunity($name,$userid,$Type,$db){
   $commuid = $db->lastInsertId();
   addmemberstocommunity($commuid,$userid,3,$db);
   return $commuid;
-}
-
-function addmemberstocommunity($commuid, $userid, $type,$db){
-  $result = $db->prepare("INSERT INTO Dconnection (CommuID,UserID,UserType) VALUES (".(string)$commuid.",".(string)$userid.",".(string)$type.")");
-  $result->execute();
-  return $db->lastInsertId();
 }
 
 function sharearticle($userid,$summary = null,$aid,$author,$public,$comid,$db){
