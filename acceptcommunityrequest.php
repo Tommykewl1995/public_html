@@ -19,14 +19,14 @@ $json = file_get_contents('php://input');
 $obj = json_decode($json, true);
 
 try{
-  if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
-    $response['ResponseCode'] = "400";
-    $response['ResponseMessage'] = "Invalid api_key"; //user friendly message
-    $status['Status'] = $response;
-    header('Content-type: application/json');
-    echo json_encode($status);
-    die();
-  }
+  // if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
+  //   $response['ResponseCode'] = "400";
+  //   $response['ResponseMessage'] = "Invalid api_key"; //user friendly message
+  //   $status['Status'] = $response;
+  //   header('Content-type: application/json');
+  //   echo json_encode($status);
+  //   die();
+  // }
     $query = $db->prepare("SELECT * FROM Notifications WHERE NID = :NID");
     $query->bindParam(":NID", $obj['NID'],PDO::PARAM_INT);
     $query->execute();
@@ -43,8 +43,15 @@ try{
     $row3 = $query3->fetch();
     if($obj['Accept']){
       if($row3){
+        if($row2['Status'] == 3){
+                        $community->editmembers($row2['UserID'], 2);
+        }
         $community->editmembers($row2['UserID'], 1);
-      }else{
+      }
+      else{
+        if($row2['Status'] == 3){
+          $community->addmemberstocommunity($row2['UserID'], 2); 
+        }
         $community->addmemberstocommunity($row2['UserID'], 1);
       }
       $query = $db->prepare("SELECT ComType,Name FROM ComDetails WHERE CommuID = :CommuID");
@@ -53,7 +60,12 @@ try{
       $que = $query->fetch();
       list($response['CID'], $response['CommuID'], $response['Type'], $response['Name']) = [$db->lastInsertId(), $row2['CommuID'], $que['ComType'], $que['Name']];
       $response['ResponseMessage'] = "Community Request Accepted";
-      $status = 1;
+      if($row2['Status'] == 3){
+         $status = 4;
+      }
+      else{
+        $status = 1;
+      }
       $word = "accept";
       $result2 = $db->prepare("INSERT INTO Notifications (Type,ID,UserID) VALUES (12,:ID,:UserID)");
       $result2->bindParam(":UserID",$row2['DID'],PDO::PARAM_INT);
@@ -73,7 +85,7 @@ try{
 
           $registrationIds[] = $row22['RegistrationID'];
 
-          $message = "User has ".$word."ed your Community Request";
+          $message = "Community Request ".$word."ed  ";
 
           $url = 'https://fcm.googleapis.com/fcm/send';
           //api_key available in Firebase Console -> Project Settings -> CLOUD MESSAGING -> Server key
@@ -113,7 +125,13 @@ try{
            $response['CurlResponse'] = $result5;
     }else{
       $response['ResponseMessage'] = "Community Request Rejected";
-      $status = 2;
+      if($row2['Status'] == 3){
+         $status = 5;
+      }
+      else{
+        $status = 2;
+      }
+     
     }
     $result3 = $db->prepare("UPDATE CommunityRequests SET Status=:Status WHERE ReqID = :ReqID");
     $result3->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);

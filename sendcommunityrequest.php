@@ -15,7 +15,7 @@ try{
    
    $list = $obj['To'];
   for($i=0;$i < count($list);$i++){
-    $result1 = $db->prepare("SELECT ReqID FROM CommunityRequests WHERE DID = :DID AND UserID = :UserID AND CommuID = :CommuID AND Status IN (0,2)");
+    $result1 = $db->prepare("SELECT ReqID FROM CommunityRequests WHERE DID = :DID AND UserID = :UserID AND CommuID = :CommuID AND Status IN (0,1,3,4)");
     $result1->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
     $result1->bindParam(":DID",$obj['UserID'],PDO::PARAM_INT);
     $result1->bindParam(":CommuID",$obj['CommuID'],PDO::PARAM_INT);
@@ -30,7 +30,7 @@ try{
     $check ->execute();
     $check1 = $check->fetch();
     if($check1){
-          $query = $db->prepare("INSERT INTO CommunityRequests (DID,UserID,CommuID,Status) VALUES (:DID,:UserID,:CommuID,'2')");
+          $query = $db->prepare("INSERT INTO CommunityRequests (DID,UserID,CommuID,Status) VALUES (:DID,:UserID,:CommuID,'3')");
           $query->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
           $query->bindParam(":DID",$obj['UserID'],PDO::PARAM_INT);
           $query->bindParam(":CommuID",$obj['CommuID'],PDO::PARAM_INT);
@@ -38,7 +38,7 @@ try{
           
     }
     else{
-          $query = $db->prepare("INSERT INTO CommunityRequests (DID,UserID,CommuID) VALUES (:DID,:UserID,:CommuID)");
+          $query = $db->prepare("INSERT INTO CommunityRequests (DID,UserID,CommuID,Status) VALUES (:DID,:UserID,:CommuID.'0')");
           $query->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
           $query->bindParam(":DID",$obj['UserID'],PDO::PARAM_INT);
           $query->bindParam(":CommuID",$obj['CommuID'],PDO::PARAM_INT);
@@ -114,7 +114,7 @@ try{
   
   }
   $response['ResponseCode'] = "200";
-  $response['ResponseMessage'] = .$message. ;
+  $response['ResponseMessage'] = "Community Request Sent" ;
   $status['Status'] = $response;
   header('Content-type: application/json');
   echo json_encode($status);
