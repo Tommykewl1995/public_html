@@ -21,12 +21,12 @@ try{
     die();
   }
   $community = Community::createcommunity($obj['Name'], 1, $obj['UserID'], $db, $obj['Status']);
-  foreach ($obj['Clinics'] as $clinic) {
-    $community->addclinicstocommunity($clinic);
-  }
-  foreach ($obj['Doctors'] as $doctor) {
-    $community->adddoctorstocommunity($doctor);
-  }
+  // foreach ($obj['Clinics'] as $clinic) {
+  //   $community->addclinicstocommunity($clinic);
+  // }
+  // foreach ($obj['Doctors'] as $doctor) {
+  //   $community->adddoctorstocommunity($doctor);
+  // }
   $response['CommuID'] = $community->commuid;
   $response['ResponseCode'] = "200";
   $response['ResponseMessage'] = "Community Created";
