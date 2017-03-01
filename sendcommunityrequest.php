@@ -29,7 +29,7 @@ try{
     $check->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
     $check ->execute();
     $check1 = $check->fetch();
-    if($check1){
+    if($check1['IsDoctor']){
           $query = $db->prepare("INSERT INTO CommunityRequests (DID,UserID,CommuID,Status) VALUES (:DID,:UserID,:CommuID,'3')");
           $query->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
           $query->bindParam(":DID",$obj['UserID'],PDO::PARAM_INT);
@@ -38,7 +38,7 @@ try{
           
     }
     else{
-          $query = $db->prepare("INSERT INTO CommunityRequests (DID,UserID,CommuID,Status) VALUES (:DID,:UserID,:CommuID.'0')");
+          $query = $db->prepare("INSERT INTO CommunityRequests (DID,UserID,CommuID,Status) VALUES (:DID,:UserID,:CommuID,'0')");
           $query->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
           $query->bindParam(":DID",$obj['UserID'],PDO::PARAM_INT);
           $query->bindParam(":CommuID",$obj['CommuID'],PDO::PARAM_INT);
@@ -110,11 +110,11 @@ try{
 
            curl_close($ch);
            $response['CurlResponse'] = $result5;
-          
-  
+           $response['ResponseCode'] = "200";
+           $response['ResponseMessage'] = "Community Request Sent" ;
+   
   }
-  $response['ResponseCode'] = "200";
-  $response['ResponseMessage'] = "Community Request Sent" ;
+ 
   $status['Status'] = $response;
   header('Content-type: application/json');
   echo json_encode($status);

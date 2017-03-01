@@ -206,7 +206,7 @@ function getnotifications($row, $db){
       $statement = "Dr. ".$row2['FullName']." has requested to join Community ".$row2['Name'];
     }
     else{
-      $statement = .$row2['FullName']." has requested to join Community ".$row2['Name'];
+      $statement = "".$row2['FullName']." has requested to join Community ".$row2['Name'];
     }
     $pic = $row2['Pic'];
     break;
@@ -227,7 +227,7 @@ function getnotifications($row, $db){
       $statement = "Dr. ".$row2['FullName']." has accepted your request to join Community ".$row2['Name'];
     }
     else{
-      $statement = .$row2['FullName']." has accepted your request to join Community ".$row2['Name'];
+      $statement = "".$row2['FullName']." has accepted your request to join Community ".$row2['Name'];
     }
     $pic = $row2['Pic'];
     break;
