@@ -782,8 +782,41 @@ class Community{
     return new Community($db, $db->lastInsertId());
   }
 
-  function adddoctorstocommunity(){
+  function adddoctorstocommunity($did, $clinicid){
+    $query = $this->db->prepare("SELECT UserID,IsDoctor FROM user WHERE UserID = :UserID");
+    $query->bindParam(":UserID", $doctor['UserID'], PDO::PARAM_INT);
+    $query->execute();
+    if($que = $query->fetch()){
+      if($que['IsDoctor'] == 1){
+        $result = $this->db->prepare("INSERT INTO clinicdoctors (DID,ClinicID) VALUES (:DID, :ClinicID)");
+        $result->bindParam(":DID", $did, PDO::PARAM_INT);
+        $result->bindParam(":ClinicID", $clinicid, PDO::PARAM_INT);
+        $result->execute();
+        $this->addmemberstocommunity($did,2);
+        return $did;
+      }else{
+        return -1;
+      }
+    }
+    return -1;
+  }
 
+  function removedoctorsfromcommunity($did){
+    $query = $this->db->prepare("SELECT ClinicID FROM clinics WHERE CommuID = :CommuID");
+    $query->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
+    $query->execute();
+    $clinicids = "";
+    while($que = $query->fetch()){
+      $clinicids.=$que['ClinicID'].",";
+    }
+    if(strlen($clinicids) > 0){
+      $clinicids = substr($clinicids,0,-1);
+      $result = $this->db->prepare("DELETE FROM clinicdoctors WHERE DID = :DID AND ClinicID IN (:ClinicID)");
+      $result->bindParam(":DID", $did, PDO::PARAM_INT);
+      $result->bindParam(":ClinicID", $clinicids, PDO::PARAM_INT);
+      $result->execute();
+    }
+    $this->removemembersfromcommunity($did);
   }
 
   function addclinicstocommunity($clinic){
@@ -829,26 +862,26 @@ class Community{
     $result->bindParam(":AssistPassword", $password1, PDO::PARAM_STR);
   }
 
-  function addmemberstocommunity($commuid, $userid, $type){
+  function addmemberstocommunity($userid, $type){
     $result = $this->db->prepare("INSERT INTO Dconnection (CommuID,UserID,UserType) VALUES (:CommuID, :UserID, :UserType)");
-    $result->bindParam(":CommuID", $commuid, PDO::PARAM_INT);
+    $result->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
     $result->bindParam(":UserID", $userid, PDO::PARAM_INT);
     $result->bindParam(":UserType", $type, PDO::PARAM_INT);
     $result->execute();
     return $this->db->lastInsertId();
   }
 
-  function removemembersfromcommunity($commuid, $userid){
+  function removemembersfromcommunity($userid){
     $result = $this->db->prepare("DELETE FROM Dconnection WHERE CommuID = :CommuID AND UserID = :UserID");
-    $result->bindParam(":CommuID", $commuid, PDO::PARAM_INT);
+    $result->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
     $result->bindParam(":UserID", $userid, PDO::PARAM_INT);
     $result->execute();
     return $this->db->lastInsertId();
   }
 
-  function editmembers($commuid, $userid, $type){
+  function editmembers($userid, $type){
     $result = $this->db->prepare("UPDATE Dconnection SET UserType = :UserType WHERE CommuID = :CommuID AND UserID = :UserID");
-    $result->bindParam(":CommuID", $commuid, PDO::PARAM_INT);
+    $result->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
     $result->bindParam(":UserID", $userid, PDO::PARAM_INT);
     $result->bindParam(":UserType", $type, PDO::PARAM_INT);
     $result->execute();
