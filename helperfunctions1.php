@@ -784,7 +784,7 @@ class Community{
 
   function adddoctorstocommunity($did, $clinicid){
     $query = $this->db->prepare("SELECT UserID,IsDoctor FROM user WHERE UserID = :UserID");
-    $query->bindParam(":UserID", $doctor['UserID'], PDO::PARAM_INT);
+    $query->bindParam(":UserID", $did, PDO::PARAM_INT);
     $query->execute();
     if($que = $query->fetch()){
       if($que['IsDoctor'] == 1){
