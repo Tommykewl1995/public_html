@@ -14,32 +14,21 @@ $obj = json_decode($json, true);
 	try
 		{
 			if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
-				$response['ResponseCode'] = "400";
+			$response['ResponseCode'] = "400";
 		    $response['ResponseMessage'] = "Invalid api_key"; //user friendly message
 		    $status['Status'] = $response;
 		    header('Content-type: application/json');
 		    echo json_encode($status);
 				die();
 			}
-			for ($i=0; $i < 10; $i++){
-				$conditions = $obj['Conditions'][$i];
-		 		$condprob = $conditions['CondProb']*100;
-		 		$condname = $conditions['ConditionName'];
-				if($condname && $condprob){
-					$result5 = $db->prepare("INSERT INTO patientcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-					$result5->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-					$result5->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
-					$result5->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-					$result5->execute();
-					$result15 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-					$result15->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-					$result15->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
-					$result15->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-					$result15->execute();
-				}
+			$result = $db->prepare("SELECT u.UserID, u.FName, u.LName, u.Pic, u.Phone, u.Email, cr.CRID from CreateRequests cr inner join user u on u.UserID = cr.UserID");
+			$result->execute();
+			while($row = $result->fetch()){
+        $results[] = array("CRID" => $row['UserID'], "UserID" => $row['UserID'], "Name" => "Dr. ".$row['FName']." ".$row['LName'], "Pic"=> $row['Pic'], "Email" => $row['Email'], "Phone" => $row['Phone']);
 			}
-			$response['ResponseCode'] = "200";
-			$response['ResponseMessage'] = "Patient Conditions Submitted";
+			$response['DocData'] = $results;
+      $response['ResponseCode'] = "200";
+		  $response['ResponseMessage'] = " Successfully";
 			$status['Status'] = $response;
 			header('Content-type: application/json');
 			echo json_encode($status);

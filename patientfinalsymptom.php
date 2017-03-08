@@ -27,8 +27,7 @@ $return = array();
 		    echo json_encode($status);
 				die();
 			}
-			foreach($obj['Symptoms'] as $symptoms)
-			{
+			foreach($obj['Symptoms'] as $symptoms){
 					if(!in_array($symptoms['SymptomID'], $key_array))
 		            {
 		            	$key_array[$i] = $symptoms['SymptomID'];
@@ -53,36 +52,6 @@ $return = array();
 		            	}
 					}
 			}
-
-			// $result = $db->prepare("SELECT DID from Booking where PFID = :PFID");
-			// $result->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-			// $result->execute();
-			// $row = $result->fetch();
-
-
-			// $result2 = $db->prepare("SELECT * from patientfinalsymptom where PFID = ANY(SELECT a.PFID FROM doctormedicine dm inner join Booking a on dm.AID=a.AID where DID=:DID) and PFID!=:PFID");
-			// $result2->bindParam(':DID', $row['DID'], PDO::PARAM_STR);
-			// $result2->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-			// $result2->execute();
-			// $row2 = $result2->fetch();
-			// $pfid= $row2[0]['PFID'];
-			// $j=0;
-			// $k=0;
-			// foreach ($row2 as $syms)
-			// {
-			// 	$return[] = array('PFID' => $row2['PFID'], 'SymptomName' => $row2['SymptomName'], 'SymptomChoice' => $row2['SymptomChoice']);
-			// }
-			// $max = count($return);
-
-			// for($k=0; $k<$max; $k++)
-			// {
-			// 	for ($j=$k; $j< $max; $j++)
-			// 	{
-			// 		$sym[] = array('SymptomName' => $return[$j]['SymptomName'], 'SymptomChoice' => $return[$j]['SymptomChoice']);
-			// 	}
-			// 	$mainsym[] = $sym;
-			// 	$k=$j;
-			// }
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "Patient Symptoms Submitted";
 			$response['Symptoms'] = $current;

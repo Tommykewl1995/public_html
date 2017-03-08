@@ -27,7 +27,7 @@ try{
     if(is_null($que['Pic'])){
       $fpic = "http://52.24.83.227/default.png";
     }else{
-      $fpic = $row4['Pic'];
+      $fpic = $que['Pic'];
     }
     $doctors[] = array("DID" => $que['UserID'],
     "Name" => "Dr. ".(string)$que['FName']." ".(string)$que['LName'],

@@ -27,7 +27,7 @@ try{
 		if(Bcrypt::checkPassword($obj['Password'], $que['AssistPassword'])){
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "Successful Login";
-			$response['ClinicID'] = (string)$row['ClinicID'];
+			$response['ClinicID'] = (string)$que['ClinicID'];
 		}else{
 			$response['ResponseCode'] = "500";
 			$response['ResponseMessage'] = "Phone and password mismatch! Please check";

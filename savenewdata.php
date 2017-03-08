@@ -15,18 +15,9 @@ $obj = json_decode($json, true);
 
 	try
 		{
-			$query = $db->prepare("SELECT CurrClinicID FROM doctorprofile WHERE DID = :UserID");
-			$query->bindParam(":UserID", $obj['UserID'], PDO::PARAM_INT);
-			$query->execute();
-			$que = $query->fetch();
 			$query2 = $db->prepare("SELECT UserID from user where Phone=:Phone");
 			$query2->bindParam(':Phone', $obj['Phone'], PDO::PARAM_STR);
 			$query2->execute();
-      $query3 = $db->prepare("SELECT CommuID from ComDetails where CreatorID = :UserID");
-			$query3->bindParam(':UserID', $obj['UserID'], PDO::PARAM_STR);
-			$query3->execute();
-			$row3 = $query3->fetch();
-			//$row = $query2->fetch();
 			$count2 = $query2->rowCount();
 			if($count2 == 0){
         $password = generatePIN(8);
@@ -57,13 +48,9 @@ $obj = json_decode($json, true);
 				$row5 =  $query5->fetch();
         $doctorName =  "Dr. ".$row5['FName']." ".$row5['LName'];
 				list($otp_code,$message) = sendotp( $obj['Phone'],$password, "doctorCreated", $doctorName);
-			}
-			else{
+			}else{
 				$row = $query2->fetch();
 			}
-
-
-
 			$result = $db->prepare("INSERT INTO patientform (Name, Phone, Age, Gender, PID) VALUES (:Name, :Phone, :Age, :Gender, :PID)");
 			$result->bindParam(':Name', $obj['Name'], PDO::PARAM_STR);
 			$result->bindParam(':Phone', $obj['Phone'], PDO::PARAM_STR);
@@ -94,76 +81,56 @@ $obj = json_decode($json, true);
 		            	}
 					}
 			}
-
-			$count = count($obj['Conditions']);
-			if($count<=10)
-			{
-				foreach($obj['Conditions'] as $conditions)
-				{
-						$condprob = $conditions['CondProb'];
-						$result5 = $db->prepare("INSERT INTO patientcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result5->bindParam(':PFID', $pfid, PDO::PARAM_STR);
-						$result5->bindParam(':ConditionName', $conditions['ConditionName'], PDO::PARAM_STR);
-						$result5->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result5->execute();
-						$result15 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result15->bindParam(':PFID', $pfid, PDO::PARAM_STR);
-						$result15->bindParam(':ConditionName', $conditions['ConditionName'], PDO::PARAM_STR);
-						$result15->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result15->execute();
-				}
-			}
-			else
-			{
-				for ($i=0; $i < 10; $i++)
-				{
+			if($obj['Conditions']){
+				$count = (count($obj['Conditions']) < 10)?count($obj['Conditions']):10;
+				for ($i=0; $i < $count; $i++){
 					$conditions = $obj['Conditions'];
-				 		$condprob = $obj['Conditions'][$i]['CondProb'];
-				 		$condname = $obj['Conditions'][$i]['ConditionName'];
-						$result5 = $db->prepare("INSERT INTO patientcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result5->bindParam(':PFID', $pfid, PDO::PARAM_STR);
-						$result5->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
-						$result5->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result5->execute();
-						$result15 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result15->bindParam(':PFID', $pfid, PDO::PARAM_STR);
-						$result15->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
-						$result15->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result15->execute();
+			 		$condprob = $obj['Conditions'][$i]['CondProb'];
+			 		$condname = $obj['Conditions'][$i]['ConditionName'];
+					$result5 = $db->prepare("INSERT INTO patientcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
+					$result5->bindParam(':PFID', $pfid, PDO::PARAM_STR);
+					$result5->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
+					$result5->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
+					$result5->execute();
+					$result15 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
+					$result15->bindParam(':PFID', $pfid, PDO::PARAM_STR);
+					$result15->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
+					$result15->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
+					$result15->execute();
 				}
 			}
+			$query3 = $db->prepare("SELECT CommuID from clinics where ClinicID = :ClinicID");
+			$query3->bindParam(':ClinicID', $obj['ClinicID'], PDO::PARAM_STR);
+			$query3->execute();
+			$row3 = $query3->fetch();
       $query4 = $db->prepare("SELECT CommuID from Dconnection where UserID=:UserID and UserType=1 and CommuID=:CommuID");
 			$query4->bindParam(':UserID', $row['UserID'], PDO::PARAM_STR);
 			$query4->bindParam(':CommuID', $row3['CommuID'], PDO::PARAM_STR);
 			$query4->execute();
-			//$row = $query2->fetch();
 			$count4 = $query4->rowCount();
       if($count4 == 0){
-			$result2 = $db->prepare("INSERT INTO Dconnection (CommuID, UserID, UserType) VALUES (:CommuID, :UserID, 1)");
-			$result2->bindParam(':CommuID', $row3['CommuID'], PDO::PARAM_STR);
-			$result2->bindParam(':UserID', $row['UserID'], PDO::PARAM_STR);
-			$result2->execute();
-                        }
-
-			$result3 = $db->prepare("INSERT INTO appointment3 (DID, PID, PFID,Status, ClinicID) VALUES (:DID, :PID, :PFID,'Active', :ClinicID)");
-			$result3->bindParam(':DID', $obj['UserID'], PDO::PARAM_STR);
+				$result2 = $db->prepare("INSERT INTO Dconnection (CommuID, UserID, UserType) VALUES (:CommuID, :UserID, 1)");
+				$result2->bindParam(':CommuID', $row3['CommuID'], PDO::PARAM_STR);
+				$result2->bindParam(':UserID', $row['UserID'], PDO::PARAM_STR);
+				$result2->execute();
+      }
+			$result3 = $db->prepare("INSERT INTO appointment3 (DID, PID, PFID,Status, ClinicID) VALUES (:DID, :PID, :PFID,'Confirm', :ClinicID)");
+			$result3->bindParam(':DID', $obj['DID'], PDO::PARAM_STR);
 			$result3->bindParam(':PID', $row['UserID'], PDO::PARAM_STR);
 			$result3->bindParam(':PFID', $pfid, PDO::PARAM_STR);
-                        $result3->bindParam(':ClinicID', $que['CurrClinicID'], PDO::PARAM_INT);
+      $result3->bindParam(':ClinicID', $obj['ClinicID'], PDO::PARAM_INT);
 			$result3->execute();
 			$aid = $db->lastInsertId();
 			$result5 = $db->prepare("UPDATE patientprofile SET CPFID=:CPFID where PID=:PID");
 			$result5->bindParam(':PID', $row['UserID'], PDO::PARAM_STR);
 			$result5->bindParam(':CPFID', $pfid, PDO::PARAM_STR);
 			$result5->execute();
-			$response['CurrClinic'] = ($que['CurrClinicID'])?$que['CurrClinicID']:"shit";
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "New Patient Data Submitted";
 			$response['PFID'] = (string)$pfid;
 			$response['AID'] = (string)$aid;
 			$response['usermessage'] = $message;
-                        $response['otp'] = $otp_code;
-
+      $response['otp'] = $otp_code;
 			$status['Status'] = $response;
 			header('Content-type: application/json');
 			echo json_encode($status);

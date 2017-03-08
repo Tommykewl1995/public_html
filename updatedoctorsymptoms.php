@@ -37,8 +37,7 @@ try
 		$result->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
 		$result->execute();
 
-		foreach($obj['Conditions'] as $conditions)
-		{
+		foreach($obj['Conditions'] as $conditions){
 			$result2 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
 			$result2->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
 			$result2->bindParam(':ConditionName', $conditions['ConditionName'], PDO::PARAM_STR);
@@ -53,8 +52,7 @@ try
 	header('Content-type: application/json');
 	echo json_encode($status);
 }
-catch(PDOException $ex)
-{
+catch(PDOException $ex){
 	$response['ResponseCode'] = "500";
 		    $response['ResponseMessage'] = "An Error occured!" . $ex; //user friendly message
 		    $status['Status'] = $response;

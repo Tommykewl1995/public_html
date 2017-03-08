@@ -20,7 +20,7 @@ $obj = json_decode($json, true);
 		    echo json_encode($status);
 				die();
 			}
-			$result = $db->prepare("SELECT PID, PFID from appointment3 where AID=:AID");
+			$result = $db->prepare("SELECT PID, PFID, DID, AppointmentDate from appointment3 where AID=:AID");
 			$result->bindParam(':AID', $obj['AID'], PDO::PARAM_STR);
 			$result->execute();
 			$row = $result->fetch();
@@ -78,6 +78,11 @@ $obj = json_decode($json, true);
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "Patient Data";
 			$name = $row2['FName']." ".$row2['LName'];
+			$response['PID'] = $row['PID'];
+			if(!is_null($row['DID'])){
+				$response['DID'] = $row['DID'];
+			}
+			$response['Time'] = strtotime($row['AppointmentDate'])*1000;
 			$response['Name'] = $name;
 			$response['PFID'] = $row['PFID'];
 			$response['query'] = $query;
