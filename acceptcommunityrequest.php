@@ -19,14 +19,14 @@ $json = file_get_contents('php://input');
 $obj = json_decode($json, true);
 
 try{
-  if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
-    $response['ResponseCode'] = "400";
-    $response['ResponseMessage'] = "Invalid api_key"; //user friendly message
-    $status['Status'] = $response;
-    header('Content-type: application/json');
-    echo json_encode($status);
-    die();
-  }
+  // if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
+  //   $response['ResponseCode'] = "400";
+  //   $response['ResponseMessage'] = "Invalid api_key"; //user friendly message
+  //   $status['Status'] = $response;
+  //   header('Content-type: application/json');
+  //   echo json_encode($status);
+  //   die();
+  // }
     $query = $db->prepare("SELECT * FROM Notifications WHERE NID = :NID");
     $query->bindParam(":NID", $obj['NID'],PDO::PARAM_INT);
     $query->execute();
@@ -35,6 +35,14 @@ try{
     $query2->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);
     $query2->execute();
     $row2 = $query2->fetch();
+    if($row2['Status'] > 2){
+      $query3 = $db->prepare("SELECT CommuID FROM clinics WHERE ClinicID = :ClinicID");
+      $query3->bindParam(":ClinicID", $row2['CommuID'], PDO::PARAM_INT);
+      $query3->execute();
+      $que3 = $query->fetch();
+      $row2['ClinicID'] = $row2['CommuID'];
+      $row2['CommuID'] = $que['CommuID'];
+    }
     $community = new Community($db,$row2['CommuID']);
     $query3 = $db->prepare("SELECT CID FROM Dconnection WHERE CommuID = :CommuID AND UserID = :UserID");
     $query3->bindParam(":CommuID", $row2['CommuID'],PDO::PARAM_INT);
@@ -43,17 +51,25 @@ try{
     $row3 = $query3->fetch();
     if($obj['Accept']){
       if($row3){
-        $community->editmembers($row2['UserID'], 1);
+        if($row2['Status'] == 3){
+          $community->editmembers($row2['UserID'], 2);
+        }else{
+          $community->editmembers($row2['UserID'], 1);
+        }
       }else{
-        $community->addmemberstocommunity($row2['UserID'], 1);
+        if($row2['Status'] == 3){
+          $community->adddoctorstocommunity($row2['UserID'], $row2['ClinicID']); 
+        }else{
+          $community->addmemberstocommunity($row2['UserID'], 1);
+        }
       }
       $query = $db->prepare("SELECT ComType,Name FROM ComDetails WHERE CommuID = :CommuID");
       $query->bindParam(":CommuID", $row2['CommuID'], PDO::PARAM_INT);
       $query->execute();
       $que = $query->fetch();
-      list($response['CID'], $response['CommuID'], $response['Type'], $response['Name']) = [$db->lastInsertId(), $row2['CommuID'], $que['ComType'], $que['Name']];
+      list($response['CommuID'], $response['Type'], $response['Name']) = [$row2['CommuID'], $que['ComType'], $que['Name']];
       $response['ResponseMessage'] = "Community Request Accepted";
-      $status = 1;
+      $status = ($row2['Status'] == 3)?4:1;
       $word = "accept";
       $result2 = $db->prepare("INSERT INTO Notifications (Type,ID,UserID) VALUES (12,:ID,:UserID)");
       $result2->bindParam(":UserID",$row2['DID'],PDO::PARAM_INT);
@@ -65,55 +81,10 @@ try{
       $result->execute();
       $row = $result->fetch();
       $data = getnotifications($row, $db);
-      //$response['CurlResponse'] = json_decode(pushnotification($row2['DID'], 'Community Request Accepted', "User has accepted your Community Request", "ComReqAccept", $data, null, $db), true);
-      $query10 = $db->prepare("SELECT RegistrationID from registrationid where UserID = :UserID");
-          $query10->bindParam(':UserID', $row2['DID'], PDO::PARAM_STR);
-          $query10->execute();
-          $row22 = $query10->fetch();
-
-          $registrationIds[] = $row22['RegistrationID'];
-
-          $message = "User has ".$word."ed your Community Request";
-
-          $url = 'https://fcm.googleapis.com/fcm/send';
-          //api_key available in Firebase Console -> Project Settings -> CLOUD MESSAGING -> Server key
-          $server_key = 'AIzaSyBKh75Fb7Ly6njtZYviL-CIN9ewkhPpTeM';
-
-          define("GOOGLE_API_KEY", "AIzaSyBKh75Fb7Ly6njtZYviL-CIN9ewkhPpTeM");
-           define("GOOGLE_GCM_URL", "https://fcm.googleapis.com/fcm/send");
-
-           $fields = array(
-
-           "registration_ids" => $registrationIds ,
-           "priority" => "high",
-           "notification" => array( "title" => "Community Request ".$word."ed", "body" => $message, "sound" =>"default", "click_action" =>"FCM_PLUGIN_ACTIVITY", "icon" =>"fcm_push_icon", "iconColor" => "blue" ),
-           "data" => $data,
-           );
-
-           $headers = array(
-           GOOGLE_GCM_URL,
-           'Content-Type: application/json',
-           'Authorization: key=' . GOOGLE_API_KEY
-           );
-
-           $ch = curl_init();
-           curl_setopt($ch, CURLOPT_URL, GOOGLE_GCM_URL);
-           curl_setopt($ch, CURLOPT_POST, true);
-           curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-           curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-           curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-           curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
-
-           $result5 = curl_exec($ch);
-           if ($result5 === FALSE) {
-           die('Problem occurred: ' . curl_error($ch));
-           }
-
-           curl_close($ch);
-           $response['CurlResponse'] = $result5;
+      $response['CurlResponse'] = json_decode(pushnotification($row2['DID'], 'Community Request Accepted', "User has accepted your Community Request", $data, $db), true);
     }else{
       $response['ResponseMessage'] = "Community Request Rejected";
-      $status = 2;
+      $status = ($row2['Status'] == 3)?5:2;
     }
     $result3 = $db->prepare("UPDATE CommunityRequests SET Status=:Status WHERE ReqID = :ReqID");
     $result3->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);

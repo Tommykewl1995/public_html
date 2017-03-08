@@ -194,7 +194,7 @@ function getnotifications($row, $db){
 
     case 11:
     $result2 = $db->prepare("SELECT CONCAT_WS(' ', u.FName, u.LName)
-    AS FullName,cd.Name,u.Pic
+    AS FullName,cd.Name,u.Pic,u.IsDoctor
     FROM CommunityRequests cr
     INNER JOIN user u
     ON u.UserID = cr.DID
@@ -204,7 +204,12 @@ function getnotifications($row, $db){
     $result2->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);
     $result2->execute();
     $row2 = $result2->fetch();
-    $statement = "Doctor ".$row2['FullName']." has requested to join Community ".$row2['Name'];
+    if ($row2['IsDoctor']) {
+      $statement = "Dr. ".$row2['FullName']." has requested to join Community ".$row2['Name'];
+    }
+    else{
+      $statement = "".$row2['FullName']." has requested to join Community ".$row2['Name'];
+    }
     $pic = $row2['Pic'];
     break;
 
@@ -220,7 +225,12 @@ function getnotifications($row, $db){
     $result2->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);
     $result2->execute();
     $row2 = $result2->fetch();
-    $statement = $row2['FullName']." has accepted your request to join Community ".$row2['Name'];
+    if ($row2['IsDoctor']) {
+      $statement = "Dr. ".$row2['FullName']." has accepted your request to join Community ".$row2['Name'];
+    }
+    else{
+      $statement = "".$row2['FullName']." has accepted your request to join Community ".$row2['Name'];
+    }
     $pic = $row2['Pic'];
     break;
 
