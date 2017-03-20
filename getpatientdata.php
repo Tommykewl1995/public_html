@@ -20,7 +20,7 @@ $obj = json_decode($json, true);
 		    echo json_encode($status);
 				die();
 			}
-			$result = $db->prepare("SELECT PID, PFID, DID, AppointmentDate from appointment3 where AID=:AID");
+			$result = $db->prepare("SELECT PID, PFID, DID, AppointmentDate, Payment, ClinicID from appointment3 where AID=:AID");
 			$result->bindParam(':AID', $obj['AID'], PDO::PARAM_STR);
 			$result->execute();
 			$row = $result->fetch();
@@ -75,6 +75,11 @@ $obj = json_decode($json, true);
 					$query[] = array('PQID' => (string)$row6['PQID'], 'PFID' => (string)$row6['PFID'], 'PQuery' => (string)$row6['PQuery'], 'PQImg' => (string)$row6['PQImg'], 'DQID' => (string)$row6['DQID'], 'DQuery' => (string)$row6['DQuery']);
 				}
 			}
+			$result7 = $db->prepare("SELECT Fees FROM clinicdoctors WHERE DID = :DID AND ClinicID = :ClinicID");
+			$result7->bindParam(':DID', $row['DID'], PDO::PARAM_INT);
+			$result7->bindParam(':ClinicID', $row['ClinicID'], PDO::PARAM_INT);
+			$result7->execute();
+			$row7 = $result7->fetch();
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "Patient Data";
 			$name = $row2['FName']." ".$row2['LName'];
@@ -82,6 +87,8 @@ $obj = json_decode($json, true);
 			if(!is_null($row['DID'])){
 				$response['DID'] = $row['DID'];
 			}
+			$response['Payment'] = (float)$row['Payment'];
+			$response['Fees'] = (float)$row7['Fees'];
 			$response['Time'] = strtotime($row['AppointmentDate'])*1000;
 			$response['Name'] = $name;
 			$response['PFID'] = $row['PFID'];

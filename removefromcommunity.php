@@ -12,6 +12,17 @@ $json = file_get_contents('php://input');
 $obj = json_decode($json, true);
 
 try{
+  if($obj['ClinicID']){
+    $query = $db->prepare("SELECT CommuID FROM clinics WHERE ClinicID = :ClinicID");
+    $query->bindParam(":ClinicID", $obj['ClinicID'], PDO::PARAM_INT);
+    $query->execute();
+    $que = $query->fetch();
+    $obj['CommuID'] = $que['CommuID'];
+    $query2 = $db->prepare("SELECT 1 FROM clinicdoctors WHERE DID = :DID");
+    $query2->bindParam(":DID", $obj['ID'], PDO::PARAM_INT);
+    $query2->execute();
+    $count = $query2->rowCount();
+  }
   $community = new Community($db, $obj['CommuID']);
   $result1 = $db->prepare("SELECT UserType FROM Dconnection WHERE UserID = :UserID AND CommuID = :CommuID");
   $result1->bindParam(":UserID", $obj['ID'],PDO::PARAM_INT);
@@ -23,7 +34,10 @@ try{
       $response['ResponseMessage'] = "Creator cannot remove himself from community";
       $response['ResponseCode'] = "500";
     }elseif($row1['UserType'] == 2){
-      $community->removedoctorsfromcommunity($obj['ID']);
+      $community->removedoctorsfromcommunity($obj['ID'], $obj['ClinicID']);
+      if($count == 1){
+        $community->removemembersfromcommunity($obj['ID']);
+      }
     }else{
       $community->removemembersfromcommunity($obj['ID']);
       $response['ResponseMessage'] = "User removed successfully";
@@ -38,6 +52,9 @@ try{
     if($row && $row['Usertype'] > $row1['UserType']){
       if($row1['UserType'] == 2){
         $community->removedoctorsfromcommunity($obj['ID']);
+        if($count == 1){
+          $community->removemembersfromcommunity($obj['ID']);
+        }
       }else{
         $community->removemembersfromcommunity($obj['ID']);
       }

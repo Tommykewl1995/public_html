@@ -19,26 +19,13 @@ try{
     echo json_encode($status);
     die();
   }
-  $doctors = array();
-  $query = $db->prepare("SELECT u.UserID,u.FName,u.LName,u.Phone,u.Email,u.Pic,c.Fees FROM clinicdoctors c INNER JOIN user u ON u.UserID = c.DID WHERE c.ClinicID = :ClinicID");
-  $query->bindParam(":ClinicID", $obj['ClinicID'], PDO::PARAM_INT);
-  $query->execute();
-  while($que = $query->fetch()){
-    if(is_null($que['Pic'])){
-      $fpic = "http://52.24.83.227/default.png";
-    }else{
-      $fpic = $que['Pic'];
-    }
-    $doctors[] = array("DID" => $que['UserID'],
-    "Name" => "Dr. ".(string)$que['FName']." ".(string)$que['LName'],
-    "Phone" => $que['Phone'],
-    "Email" => $que['Email'],
-    "Pic" => $fpic,
-    "Fees" => $que['Fees']);
-  }
-  $response['Doctors'] = $doctors;
+  $result = $db->prepare("UPDATE clinicdoctors SET Fees = :Fees WHERE ClinicID = :ClinicID AND DID = :DID");
+  $result->bindParam(":ClinicID", $obj['ClinicID'], PDO::PARAM_INT);
+  $result->bindParam(":DID", $obj['DID'], PDO::PARAM_INT);
+  $result->bindParam(":Fees", $obj['Fees'], PDO::PARAM_STR);
+  $result->execute();
   $response['ResponseCode'] = "200";
-  $response['ResponseMessage'] = "Clinics Data";
+  $response['ResponseMessage'] = "Fees Edited";
   $status['Status'] = $response;
   header('Content-type: application/json');
   echo json_encode($status);

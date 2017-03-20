@@ -40,7 +40,7 @@ function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo
       if($obj['DID']){
         $obj['UserID'] = $obj['DID'];
       }
-			$result = $db->prepare("SELECT u.FName,u.LName,u.Phone, u.Email, u.Gender,u.DOB,dp.Summary,dp.ExStart,dp.ExEnd,dp.Fee,dp.RegNo,dp.RegAssoc,dp.RegYear,u.Pic,dp.DoctorSign,dp.IsVerified,dp.SecPhoneNo,dp.CurrClinicID,c.Council from doctorprofile dp inner join user u on dp.DID = u.UserID left join council c on c.CouncilID = dp.RegAssoc where dp.DID=:UserID");
+			$result = $db->prepare("SELECT u.FName,u.LName,u.Phone, u.Email, u.Gender,u.DOB,dp.Summary,dp.ExStart,dp.ExEnd,dp.RegNo,dp.RegAssoc,dp.RegYear,u.Pic,dp.DoctorSign,dp.IsVerified,dp.SecPhoneNo,dp.CurrClinicID,c.Council from doctorprofile dp inner join user u on dp.DID = u.UserID left join council c on c.CouncilID = dp.RegAssoc where dp.DID=:UserID");
 			$result->bindParam(':UserID', $obj['UserID'], PDO::PARAM_INT);
 			$result->execute();
 			$row = $result->fetch();
@@ -68,7 +68,10 @@ function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo
 				$affiliation[] = array('name' => (string)$row5['DocAffil'] );
 			}
       $clinics = array();
-			$result6 = $db->prepare("SELECT * FROM clinics c INNER JOIN speciality sp ON sp.SpecID = c.ClinicSpec where c.DID=:UserID");
+			$result6 = $db->prepare("SELECT c.ClinicID,c.ClinicName,c.Summary,c.Address,c.Address,c.City,c.PinCode,c.ClinicEmail,c.ClinicPhone,c.ClinicLogo
+        FROM clinicdoctors cd
+        INNER JOIN clinics c ON c.ClinicID = cd.ClinicID
+        WHERE cd.DID = :UserID");
 			$result6->bindParam(':UserID', $obj['UserID'], PDO::PARAM_STR);
 			$result6->execute();
 			while ($row6 = $result6->fetch()){
@@ -78,9 +81,7 @@ function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo
           $curr = 0;
         }
 				$clinics[] = array("ClinicID" => $row6['ClinicID'],
-        "name" => $row6['ClinicName'],
-        "ClinicSpecID" => $row6['ClinicSpec'],
-        "ClinicSpec" => $row6['Speciality'],
+        "Name" => $row6['ClinicName'],
         "Summary" => $row6['Summary'],
         "Address" => (string)$row6['Address'],
 				"City" => $row6['City'],
@@ -96,7 +97,7 @@ function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo
 			$interval = $datetime1->diff($datetime);
 			$interval = $interval->format('%y');
 
-			$response['DoctorData'] = array("DID" => $obj['UserID'],
+			$docdata = array("DID" => $obj['UserID'],
 			"Name" => "Dr. ".(string)$row['FName']." ".(string)$row['LName'],
 			"First Name" => $row['FName'],
 			"Last Name" => $row['LName'],
@@ -109,7 +110,6 @@ function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo
 			"Experience" => (string)$interval." years",
 			"ExStart" => $row['ExStart'],
 			"ExEnd" => $row['ExEnd'],
-			"Fee" => $row['Fee'],
 			"Registration Number" => $row['RegNo'],
 			"Association" => $row['Council'],
                         "AssociationID" => $row['RegAssoc'],
@@ -121,6 +121,15 @@ function haversineGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo
 			"Degree" => $degree,
 			"Affiliation" => $affiliation,
 			"Clinics" => $clinics);
+      if(isset($obj['ClinicID'])){
+        $result7 = $db->prepare("SELECT Fees FROM clinicdoctors WHERE DID = :DID AND ClinicID = :ClinicID");
+        $result7->bindParam(":DID", $obj['DID'], PDO::PARAM_INT);
+        $result7->bindParam(":ClinicID", $obj['ClinicID'], PDO::PARAM_INT);
+        $result7->execute();
+        $row7 = $result7->fetch();
+        $docdata['Fees'] = $row7['Fees'];
+      }
+      $response['DoctorData'] = $docdata;
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "Doctor-Data";
 			$status['Status'] = $response;

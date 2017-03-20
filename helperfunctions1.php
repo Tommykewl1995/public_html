@@ -194,21 +194,31 @@ function getnotifications($row, $db){
 
     case 11:
     $result2 = $db->prepare("SELECT CONCAT_WS(' ', u.FName, u.LName)
-    AS FullName,cd.Name,u.Pic,u.IsDoctor
+    AS FullName,u.Pic,u.IsDoctor, cr.Status, cr.CommuID
     FROM CommunityRequests cr
     INNER JOIN user u
     ON u.UserID = cr.DID
-    INNER JOIN ComDetails cd
-    ON cr.CommuID = cd.CommuID
     WHERE ReqID = :ReqID");
     $result2->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);
     $result2->execute();
     $row2 = $result2->fetch();
     if ($row2['IsDoctor']) {
-      $statement = "Dr. ".$row2['FullName']." has requested to join Community ".$row2['Name'];
+      $statement = "Dr. ".$row2['FullName']." has requested to join ";
+    }else{
+      $statement = "".$row2['FullName']." has requested to join ";
     }
-    else{
-      $statement = "".$row2['FullName']." has requested to join Community ".$row2['Name'];
+    if($row2['Status'] > 2){
+      $query = $db->prepare("SELECT ClinicName FROM clinics WHERE ClinicID = :ClinicID");
+      $query->bindParam(":ClinicID", $row2['CommuID'], PDO::PARAM_INT);
+      $query->execute();
+      $que = $query->fetch();
+      $statement.="Clinic ".$que['ClinicName'];
+    }else{
+      $query = $db->prepare("SELECT Name FROM ComDetails WHERE CommuID = :CommuID");
+      $query->bindParam(":CommuID", $row2['CommuID'], PDO::PARAM_INT);
+      $query->execute();
+      $que = $query->fetch();
+      $statement.="Community ".$que['Name'];
     }
     $pic = $row2['Pic'];
     break;
@@ -781,7 +791,12 @@ class Community{
     $result->bindParam(":ComType", $type, PDO::PARAM_INT);
     $result->bindParam(":Status", $status, PDO::PARAM_STR);
     $result->execute();
-    return new Community($db, $db->lastInsertId());
+    $community = new Community($db, $db->lastInsertId());
+    $result2 = $db->prepare("INSERT INTO Dconnection (CommuID, UserID, UserType) VALUES (:CommuID, :UserID, 3)");
+    $result2->bindParam(":CommuID", $community->commuid, PDO::PARAM_INT);
+    $result2->bindParam(":UserID", $creatorid, PDO::PARAM_INT);
+    $result2->execute();
+    return $community;
   }
 
   function adddoctorstocommunity($did, $clinicid){
@@ -794,8 +809,7 @@ class Community{
         $result->bindParam(":DID", $did, PDO::PARAM_INT);
         $result->bindParam(":ClinicID", $clinicid, PDO::PARAM_INT);
         $result->execute();
-        $this->addmemberstocommunity($did,2);
-        return $did;
+        return $this->db->lastInsertId();
       }else{
         return -1;
       }
@@ -803,22 +817,11 @@ class Community{
     return -1;
   }
 
-  function removedoctorsfromcommunity($did){
-    $query = $this->db->prepare("SELECT ClinicID FROM clinics WHERE CommuID = :CommuID");
-    $query->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
-    $query->execute();
-    $clinicids = "";
-    while($que = $query->fetch()){
-      $clinicids.=$que['ClinicID'].",";
-    }
-    if(strlen($clinicids) > 0){
-      $clinicids = substr($clinicids,0,-1);
-      $result = $this->db->prepare("DELETE FROM clinicdoctors WHERE DID = :DID AND ClinicID IN (:ClinicID)");
+  function removedoctorsfromcommunity($did, $clinicid){
+      $result = $this->db->prepare("DELETE FROM clinicdoctors WHERE DID = :DID AND ClinicID = :ClinicID");
       $result->bindParam(":DID", $did, PDO::PARAM_INT);
-      $result->bindParam(":ClinicID", $clinicids, PDO::PARAM_INT);
+      $result->bindParam(":ClinicID", $clinicid, PDO::PARAM_INT);
       $result->execute();
-    }
-    $this->removemembersfromcommunity($did);
   }
 
   function addclinicstocommunity($clinic){
@@ -923,7 +926,8 @@ function sharearticle($userid,$summary = null,$aid,$author,$public,$comid,$db){
 function getcommunities($UserId,$db)
 {
   $myCommunities = array();
-  $otherCommunities = array();
+  $adminCommunities = array();
+  $connectCommunities = array();
   $following = array();
   $results = $db->prepare("SELECT * FROM Dconnection WHERE UserID = :UserID AND CommuID != 1");
   $results->bindParam(":UserID", $UserId, PDO::PARAM_INT);

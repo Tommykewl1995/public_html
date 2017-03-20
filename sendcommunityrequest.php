@@ -14,12 +14,35 @@ $obj = json_decode($json, true);
 try{
   $list = $obj['To'];
   for($i=0;$i < count($list);$i++){
-    $check =  $db->prepare("SELECT IsDoctor FROM user WHERE UserID = :UserID");
-    $check->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
-    $check ->execute();
-    $check1 = $check->fetch();
-    $id = ($check1['IsDoctor'] == 1)?$obj['ClinicID']:$obj['CommuID'];
-    $k = ($check1['IsDoctor'] == 1)?3:0;
+    if($obj['ClinicID']){
+      $check2 = $db->prepare("SELECT 1 FROM clinicdoctors WHERE ClinicID = :ClinicID AND DID = :DID");
+      $check2->bindParam(":ClinicID", $obj['ClinicID'], PDO::PARAM_INT);
+      $check2->bindParam(":DID", $list[$i], PDO::PARAM_INT);
+      $check2->execute();
+      if($check3 = $check2->fetch()){
+        $response['Alert'] = "Clinic doctor already added";
+        $responses[] = $response;
+        continue;
+      }
+      $id = $obj['ClinicID'];
+      $k = 3;
+      $title = "Clinic Doctor Request";
+      $message = "Admin has requested to join clinic";
+    }else{
+      $check2 = $db->prepare("SELECT 1 FROM Dconnection WHERE CommuID = :CommuID AND UserID = :UserID AND UserType > 0");
+      $check2->bindParam(":CommuID", $obj['CommuID'], PDO::PARAM_INT);
+      $check2->bindParam(":UserID", $list[$i], PDO::PARAM_INT);
+      $check2->execute();
+      if($check3 = $check2->fetch()){
+        $response['Alert'] = "Already in Community";
+        $responses[] = $response;
+        continue;
+      }
+      $title = 'Doctor Community Request';
+      $message = "Doctor has requested to join Community";
+      $id = $obj['CommuID'];
+      $k = 0;
+    }
     $result1 = $db->prepare("SELECT ReqID FROM CommunityRequests WHERE DID = :DID AND UserID = :UserID AND CommuID = :CommuID AND Status IN (0,1,3,4)");
     $result1->bindParam(":UserID",$list[$i],PDO::PARAM_INT);
     $result1->bindParam(":DID",$obj['UserID'],PDO::PARAM_INT);
@@ -52,7 +75,7 @@ try{
     $query11->bindParam(':UserID', $obj['UserID'], PDO::PARAM_STR);
     $query11->execute();
     $row33 = $query11->fetch();
-    $response['CurlResponse'] = json_decode(pushnotification($list[$i], 'Doctor Community Request', "Doctor has requested to join Community", $data, $db), true);
+    $response['CurlResponse'] = json_decode(pushnotification($list[$i], $title, $message, $data, $db), true);
     $response['ResponseCode'] = "200";
     $response['ResponseMessage'] = "Community Request Sent";
     $responses[] = $response;

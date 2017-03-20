@@ -11,6 +11,25 @@ date_default_timezone_set('Asia/Kolkata');
 $json = file_get_contents('php://input');
 $obj = json_decode($json, true);
 
+function get_client_ip() {
+    $ipaddress = '';
+    if (getenv('HTTP_CLIENT_IP') && filter_var(getenv('HTTP_CLIENT_IP'), FILTER_VALIDATE_IP))
+        $ipaddress = getenv('HTTP_CLIENT_IP');
+    else if(getenv('HTTP_X_FORWARDED_FOR') && filter_var(getenv('HTTP_X_FORWARDED_FOR'), FILTER_VALIDATE_IP))
+        $ipaddress = getenv('HTTP_X_FORWARDED_FOR');
+    else if(getenv('HTTP_X_FORWARDED') && filter_var(getenv('HTTP_X_FORWARDED'), FILTER_VALIDATE_IP))
+        $ipaddress = getenv('HTTP_X_FORWARDED');
+    else if(getenv('HTTP_FORWARDED_FOR') && filter_var(getenv('HTTP_FORWARDED_FOR'), FILTER_VALIDATE_IP))
+        $ipaddress = getenv('HTTP_FORWARDED_FOR');
+    else if(getenv('HTTP_FORWARDED') && filter_var(getenv('HTTP_FORWARDED'), FILTER_VALIDATE_IP))
+       $ipaddress = getenv('HTTP_FORWARDED');
+    else if(getenv('REMOTE_ADDR') && filter_var(getenv('REMOTE_ADDR'), FILTER_VALIDATE_IP))
+        $ipaddress = getenv('REMOTE_ADDR');
+    else
+        $ipaddress = 'UNKNOWN';
+    return $ipaddress;
+}
+
 $query = $db->prepare("SELECT * FROM user WHERE Phone=:Phone");
 $query->bindParam(':Phone', $obj['Phone'], PDO::PARAM_INT);
 $query->execute();
@@ -50,8 +69,10 @@ if($query->rowCount()==1)
 				{
 					if($obj['Phone']==$row['Phone'] && Bcrypt::checkPassword($obj['Password'], $row['Password']))
 					{
+						$ip = get_client_ip();
+
 						    $salman = $db->prepare("INSERT into IpHistory (UserID, IP) values (:UserID, :IP)");
-						    $salman->bindParam(':IP', $obj['IP'], PDO::PARAM_STR);
+						    $salman->bindParam(':IP', $ip, PDO::PARAM_STR);
 					            $salman->bindParam(':UserID', $row['UserID'], PDO::PARAM_STR);
 						    $salman->execute();
 

@@ -115,7 +115,18 @@ $obj = json_decode($json, true);
 			else
 				$response['Email'] = "";
 
-
+			if(isset($obj['hash'])){
+                                //"fLsQY1fm", "5JgED3elLS" => rohan
+                                // "BDPg5XsA" "2kTBfOVz3k" => tamo test
+                                // "epUh66ed" "iUEdomgRzR" => tamo prod
+				$response['Key'] = "fLsQY1fm";
+				$str = $response['Key']."|".$obj['hash']."||||||5JgED3elLS";
+				$str = str_replace("FName",$response['FName'],$str);
+				$email = (is_null($row['Email']))?'rohan@rxhealth.co':$row['Email'];
+				$str = str_replace("Email",$response['Email'],$email);
+				$hash = strtolower(hash('sha512', $str));
+				$response['Hash'] = $hash;
+			}
 			$status['Status'] = $response;
 			header('Content-type: application/json');
 			echo json_encode($status);

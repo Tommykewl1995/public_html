@@ -39,26 +39,31 @@ try{
       $query3 = $db->prepare("SELECT CommuID FROM clinics WHERE ClinicID = :ClinicID");
       $query3->bindParam(":ClinicID", $row2['CommuID'], PDO::PARAM_INT);
       $query3->execute();
-      $que3 = $query->fetch();
+      $que3 = $query3->fetch();
       $row2['ClinicID'] = $row2['CommuID'];
-      $row2['CommuID'] = $que['CommuID'];
+      $row2['CommuID'] = $que3['CommuID'];
     }
     $community = new Community($db,$row2['CommuID']);
-    $query3 = $db->prepare("SELECT CID FROM Dconnection WHERE CommuID = :CommuID AND UserID = :UserID");
+    $query3 = $db->prepare("SELECT UserType FROM Dconnection WHERE CommuID = :CommuID AND UserID = :UserID");
     $query3->bindParam(":CommuID", $row2['CommuID'],PDO::PARAM_INT);
     $query3->bindParam(":UserID", $row2['UserID'],PDO::PARAM_INT);
     $query3->execute();
     $row3 = $query3->fetch();
     if($obj['Accept']){
-      if($row3){
-        if($row2['Status'] == 3){
-          $community->editmembers($row2['UserID'], 2);
+      if($row2['Status'] > 2){
+        $community->adddoctorstocommunity($row2['UserID'], $row2['ClinicID']);
+        if($row3){
+          if($row3['UserType'] < 2){
+            $community->editmembers($row2['UserID'], 2);
+          }
         }else{
-          $community->editmembers($row2['UserID'], 1);
+          $community->addmemberstocommunity($row2['UserID'], 2);
         }
       }else{
-        if($row2['Status'] == 3){
-          $community->adddoctorstocommunity($row2['UserID'], $row2['ClinicID']); 
+        if($row3){
+          if($row3['UserType'] < 1){
+            $community->editmembers($row2['UserID'], 1);
+          }
         }else{
           $community->addmemberstocommunity($row2['UserID'], 1);
         }
@@ -69,7 +74,7 @@ try{
       $que = $query->fetch();
       list($response['CommuID'], $response['Type'], $response['Name']) = [$row2['CommuID'], $que['ComType'], $que['Name']];
       $response['ResponseMessage'] = "Community Request Accepted";
-      $status = ($row2['Status'] == 3)?4:1;
+      $status = ($row2['Status'] > 2)?4:1;
       $word = "accept";
       $result2 = $db->prepare("INSERT INTO Notifications (Type,ID,UserID) VALUES (12,:ID,:UserID)");
       $result2->bindParam(":UserID",$row2['DID'],PDO::PARAM_INT);
@@ -84,7 +89,7 @@ try{
       $response['CurlResponse'] = json_decode(pushnotification($row2['DID'], 'Community Request Accepted', "User has accepted your Community Request", $data, $db), true);
     }else{
       $response['ResponseMessage'] = "Community Request Rejected";
-      $status = ($row2['Status'] == 3)?5:2;
+      $status = ($row2['Status'] > 2)?5:2;
     }
     $result3 = $db->prepare("UPDATE CommunityRequests SET Status=:Status WHERE ReqID = :ReqID");
     $result3->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);

@@ -37,28 +37,26 @@ $today = date("Y-m-d H:i:s", strtotime("today 12:00 A.M."));
 $tomorrow = date("Y-m-d H:i:s", strtotime("tomorrow 12:00 A.M."));
 try{
 	if($obj['ClinicID']){
-		$result4 = $db->prepare("SELECT AID, PID, PFID, AppointmentDate from appointment3 bh where ClinicID=:ClinicID and Status='Active' order by AID desc");
+		$result4 = $db->prepare("SELECT AID, PID, PFID, AppointmentDate from appointment3 where ClinicID=:ClinicID and Status='Active' order by AID desc");
 		$result4->bindParam(':ClinicID', $obj['ClinicID'], PDO::PARAM_INT);
 		$result4->execute();
 		while ($row4 = $result4->fetch()){
 			$sharedsymptoms[] = getsymp($row4['AID'], $row4['PFID'], $row4['PID'], strtotime($row4['AppointmentDate']), $db);
 		}
 		$todaysymp = array();
-		$result5 = $db->prepare("SELECT AID, PID, PFID, AppointmentDate from appointment3 bh where ClinicID=:ClinicID and Status='Comfirm' and AppointmentDate IS NOT NULL and AppointmentDate BETWEEN  :MIN AND :MAX order by AID desc");
+		$result5 = $db->prepare("SELECT AID, PID, PFID, AppointmentDate from appointment3 where ClinicID=:ClinicID and Status='Confirm' and AppointmentDate IS NOT NULL order by AID desc");
 		$result5->bindParam(':ClinicID', $obj['ClinicID'], PDO::PARAM_INT);
-		$result5->bindParam(':MIN', $today, PDO::PARAM_STR);
-		$result5->bindParam(':MAX', $tomorrow, PDO::PARAM_STR);
 		$result5->execute();
 		while ($row4 = $result4->fetch()){
 			$todaysymp[] = getsymp($row4['AID'], $row4['PFID'], $row4['PID'], strtotime($row4['AppointmentDate']), $db);
 		}
 		$response['TodaySymptoms'] = $todaysymp;
 	}else{
-		$result4 = $db->prepare(" SELECT AID, PID, PFID, AppointmentDate from appointment3 bh where DID=:DID and Status='Confirm' order by AID desc");
+		$result4 = $db->prepare(" SELECT AID, PID, PFID, AppointmentDate from appointment3 where DID=:DID and Status='Confirm' order by AID desc");
 		$result4->bindParam(':DID', $obj['UserID'], PDO::PARAM_INT);
 		$result4->execute();
 		while ($row4 = $result4->fetch()){
-			$sharedsymptoms[] = getsymp($row4['AID'], $row4['PFID'], $row4['PID'], strtotime($row4['AppointmentDate']));
+			$sharedsymptoms[] = getsymp($row4['AID'], $row4['PFID'], $row4['PID'], strtotime($row4['AppointmentDate']), $db);
 		}
 	}
 	$response['ResponseCode'] = "200";

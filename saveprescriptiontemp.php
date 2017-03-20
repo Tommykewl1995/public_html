@@ -23,7 +23,7 @@ $pres = array();
 		    echo json_encode($status);
 				die();
 			}
-			$query = $db->prepare("SELECT PFID, PID, DID, NOW() as PrescriptionDate, ClinicID from appointment3 where AID = :AID");
+			$query = $db->prepare("SELECT PFID, PID, DID, NOW() as PrescriptionDate, ClinicID, Payment from appointment3 where AID = :AID");
 			$query->bindParam(':AID', $obj['AID'], PDO::PARAM_STR);
 			$query->execute();
 			$pfid = $query->fetch();
@@ -158,7 +158,11 @@ $qdelete1 = $db->prepare("DELETE from doctortemptest where AID = :AID");
 			$result7->bindParam(':UserID', $pfid['PID'], PDO::PARAM_STR);
 			$result7->execute();
 			$row7 = $result7->fetch();
-
+			$result8 = $db->prepare("SELECT Fees FROM clinicdoctors WHERE DID = :DID AND ClinicID = :ClinicID");
+			$result8->bindParam(':DID', $pfid['DID'], PDO::PARAM_INT);
+			$result8->bindParam(':ClinicID', $pfid['ClinicID'], PDO::PARAM_INT);
+			$result8->execute();
+			$row8 = $result8->fetch();
 			$date = date("d/m/y", strtotime($pfid['PrescriptionDate']));
 			$response['MedDate'] = (string)$date;
 			$datetime = new DateTime(date("Y-m-d H:i:s"));
@@ -171,6 +175,7 @@ $qdelete1 = $db->prepare("DELETE from doctortemptest where AID = :AID");
 			$response['ResponseMessage'] = "Data Temporarily Saved";
 			$name = "Dr. ".$row4['FName']." ".$row4['LName'];
 			$response['AID'] = (string)$obj['AID'];
+			$response['Payment'] = (float)$pfid['Payment'];
 			$response['Name'] = (string)$name;
 			$response['Pic'] = (string)$row4['Pic'];
 			$response['Degree'] = (string)$degree;
@@ -181,7 +186,7 @@ $qdelete1 = $db->prepare("DELETE from doctortemptest where AID = :AID");
 			$response['RegYear'] = (string)$row4['RegYear'];
 			$response['Sign'] = (string)$row4['DoctorSign'];
 			$response['Address'] = $row6['Address'].", ".$row6['City']."-".$row6['PinCode'];
-
+			$response['Fees'] = (float)$row8['Fees'];
 			$response['PatientName'] = $row7['FName']." ".$row7['LName'];
 			$response['PatientAddress'] = $row7['Address2'].", ".$row7['City'];
 			$response['PatientDOB'] = (string)$row7['DOB'];

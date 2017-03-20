@@ -20,10 +20,18 @@ try{
   }
   $time = (int)$obj['Time'];
   $date = date("Y-m-d H:i:s", $time);
-  $result = $db->prepare("UPDATE appointment3 SET DID = :DID, AppointmentDate = :AppointmentDate, Status = 'Confirm' WHERE AID = :AID");
+  $statement = "UPDATE appointment3 SET DID = :DID, AppointmentDate = :AppointmentDate, Status = 'Confirm'";
+  if(isset($obj['Payment'])){
+    $statement.=", PaymentStage = 'assistant', Payment = :Payment"
+  }
+  $statement.=" WHERE AID = :AID";
+  $result = $db->prepare($statement);
   $result->bindParam(':AID', $obj['AID'], PDO::PARAM_INT);
   $result->bindParam(':AppointmentDate', $date, PDO::PARAM_INT);
   $result->bindParam(':DID', $obj['DID'], PDO::PARAM_INT);
+  if(isset($obj['Payment'])){
+    $result->bindParam(":Payment", $obj['Payment'], PDO::PARAM_INT);
+  }
   $result->execute();
   $result4 = $db->prepare("INSERT INTO Notifications (Type,ID,UserID) VALUES (18,:ID,:UserID)");
   $result4->bindParam(":UserID", $obj['DID'],PDO::PARAM_INT);
