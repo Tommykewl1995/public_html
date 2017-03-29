@@ -22,7 +22,7 @@ $obj = json_decode($json, true);
 			// API access key from Google API's Console
 			define( 'API_ACCESS_KEY', 'AIzaSyBKh75Fb7Ly6njtZYviL-CIN9ewkhPpTeM' );
 
-			$query9 = $db->prepare("SELECT AID, DID, PID from appointment3 where PFID = :PFID");
+			$query9 = $db->prepare("SELECT AID, DID, PID from appointment3 where PFID = :PFID AND Status != 'Active'");
 			$query9->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
 			$query9->execute();
 			$row = $query9->fetch();

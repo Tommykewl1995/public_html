@@ -30,10 +30,18 @@ function addcron($statement, $time, $userid, $db){
 			$query9->bindParam(':AID', $obj['AID'], PDO::PARAM_STR);
 			$query9->execute();
 			$row = $query9->fetch();
+			$appstatement = "UPDATE appointment3 SET Status='Complete', ConditionID = :ConditionID, PaymentStage = 'Doctor'";
+			if(isset($obj['Payment'])){
+				$appstatement.= ", PaymentStage = 'doctor', Payment = :Payment";
+			}
 			if($obj['CWP']){
-				$query11 = $db->prepare("UPDATE appointment3 SET Status='Complete', ConditionID = :ConditionID where AID = :AID");
+                                $appstatement.=" WHERE AID = :AID";
+				$query11 = $db->prepare($appstatement);
 				$query11->bindParam(':AID', $obj['AID'], PDO::PARAM_STR);
 				$query11->bindParam(':ConditionID', $obj['Condition'], PDO::PARAM_STR);
+				if(isset($obj['Payment'])){
+					$query11->bindParam(':Payment', $obj['Payment'], PDO::PARAM_INT);
+				}
 				$query11->execute();
 			}else{
 				$query = $db->prepare("SELECT * from doctortempmedicine where AID = :AID");
@@ -167,10 +175,14 @@ function addcron($statement, $time, $userid, $db){
 				$query8->execute();
 				// API access key from Google API's Console
 				define( 'API_ACCESS_KEY', 'AIzaSyBKh75Fb7Ly6njtZYviL-CIN9ewkhPpTeM' );
-
-				$query11 = $db->prepare("UPDATE appointment3 SET Status='Complete', PrescriptionDate = NOW(), ConditionID = :ConditionID where AID = :AID");
+                                $appstatement.=", PrescriptionDate = NOW()";
+                                $appstatement.=" WHERE AID = :AID";
+				$query11 = $db->prepare($appstatement);
 				$query11->bindParam(':AID', $obj['AID'], PDO::PARAM_STR);
 				$query11->bindParam(':ConditionID', $obj['Condition'], PDO::PARAM_STR);
+				if(isset($obj['Payment'])){
+					$query11->bindParam(':Payment', $obj['Payment'], PDO::PARAM_INT);
+				}
 				$query11->execute();
 
 				$query12 = $db->prepare("SELECT FName, LName from user where UserID = :UserID");

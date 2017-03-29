@@ -57,7 +57,7 @@ try{
   if(!$obj['require']){
     $obj['require'] = array('follower', 'connection', 'admin', 'creator');
   }
-   if(!obj['is']){
+   if(!$obj['is']){
     $obj['is'] = "2,3";
   }
   if($obj['CommuID']){

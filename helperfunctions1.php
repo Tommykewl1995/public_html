@@ -8,6 +8,8 @@ UserType :
 3 : creator
 */
 
+require_once 'Bcrypt.php';
+
 define( 'API_ACCESS_KEY', 'AIzaSyBKh75Fb7Ly6njtZYviL-CIN9ewkhPpTeM' );
 define( 'USERNAME', 'kapbulk' );
 define( 'PASSWORD', 'kap@user!23' );
@@ -192,21 +194,31 @@ function getnotifications($row, $db){
 
     case 11:
     $result2 = $db->prepare("SELECT CONCAT_WS(' ', u.FName, u.LName)
-    AS FullName,cd.Name,u.Pic,u.IsDoctor
+    AS FullName,u.Pic,u.IsDoctor, cr.Status, cr.CommuID
     FROM CommunityRequests cr
     INNER JOIN user u
     ON u.UserID = cr.DID
-    INNER JOIN ComDetails cd
-    ON cr.CommuID = cd.CommuID
     WHERE ReqID = :ReqID");
     $result2->bindParam(":ReqID", $row['ID'],PDO::PARAM_INT);
     $result2->execute();
     $row2 = $result2->fetch();
     if ($row2['IsDoctor']) {
-      $statement = "Dr. ".$row2['FullName']." has requested to join Community ".$row2['Name'];
+      $statement = "Dr. ".$row2['FullName']." has requested to join ";
+    }else{
+      $statement = "".$row2['FullName']." has requested to join ";
     }
-    else{
-      $statement = "".$row2['FullName']." has requested to join Community ".$row2['Name'];
+    if($row2['Status'] > 2){
+      $query = $db->prepare("SELECT ClinicName FROM clinics WHERE ClinicID = :ClinicID");
+      $query->bindParam(":ClinicID", $row2['CommuID'], PDO::PARAM_INT);
+      $query->execute();
+      $que = $query->fetch();
+      $statement.="Clinic ".$que['ClinicName'];
+    }else{
+      $query = $db->prepare("SELECT Name FROM ComDetails WHERE CommuID = :CommuID");
+      $query->bindParam(":CommuID", $row2['CommuID'], PDO::PARAM_INT);
+      $query->execute();
+      $que = $query->fetch();
+      $statement.="Community ".$que['Name'];
     }
     $pic = $row2['Pic'];
     break;
@@ -677,7 +689,21 @@ class Search{
     $result->execute();
     $people = array();
     while($row = $result->fetch()){
-      $people[] = array('Name' => $row['FullName'], 'UserID' => $row['UserID'], "Pic" => $row['Pic']);
+      $people = array('Name' => $row['FullName'], 'UserID' => $row['UserID'], "Pic" => $row['Pic']);
+      if($h){
+        $query = $this->db->prepare("SELECT s.Speciality FROM doctorspec ds INNER JOIN speciality s ON s.SpecID = ds.SpecID WHERE ds.DID = :DID");
+        $query->bindParam(":DID", $row['UserID'], PDO::PARAM_INT);
+        $query->execute();
+        $specs = "";
+        while($que = $query->fetch()){
+          $specs.=$que['Speciality'].", ";
+        }
+        if(strlen($specs) > 0){
+          $specs = substr($specs,0,-2)
+          $people['Specs'] = $specs;
+        }
+      }
+      $people[] = $people;
     }
     return $people;
   }
@@ -779,7 +805,12 @@ class Community{
     $result->bindParam(":ComType", $type, PDO::PARAM_INT);
     $result->bindParam(":Status", $status, PDO::PARAM_STR);
     $result->execute();
-    return new Community($db, $db->lastInsertId());
+    $community = new Community($db, $db->lastInsertId());
+    $result2 = $db->prepare("INSERT INTO Dconnection (CommuID, UserID, UserType) VALUES (:CommuID, :UserID, 3)");
+    $result2->bindParam(":CommuID", $community->commuid, PDO::PARAM_INT);
+    $result2->bindParam(":UserID", $creatorid, PDO::PARAM_INT);
+    $result2->execute();
+    return $community;
   }
 
   function adddoctorstocommunity($did, $clinicid){
@@ -792,8 +823,7 @@ class Community{
         $result->bindParam(":DID", $did, PDO::PARAM_INT);
         $result->bindParam(":ClinicID", $clinicid, PDO::PARAM_INT);
         $result->execute();
-        $this->addmemberstocommunity($did,2);
-        return $did;
+        return $this->db->lastInsertId();
       }else{
         return -1;
       }
@@ -801,22 +831,11 @@ class Community{
     return -1;
   }
 
-  function removedoctorsfromcommunity($did){
-    $query = $this->db->prepare("SELECT ClinicID FROM clinics WHERE CommuID = :CommuID");
-    $query->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
-    $query->execute();
-    $clinicids = "";
-    while($que = $query->fetch()){
-      $clinicids.=$que['ClinicID'].",";
-    }
-    if(strlen($clinicids) > 0){
-      $clinicids = substr($clinicids,0,-1);
-      $result = $this->db->prepare("DELETE FROM clinicdoctors WHERE DID = :DID AND ClinicID IN (:ClinicID)");
+  function removedoctorsfromcommunity($did, $clinicid){
+      $result = $this->db->prepare("DELETE FROM clinicdoctors WHERE DID = :DID AND ClinicID = :ClinicID");
       $result->bindParam(":DID", $did, PDO::PARAM_INT);
-      $result->bindParam(":ClinicID", $clinicids, PDO::PARAM_INT);
+      $result->bindParam(":ClinicID", $clinicid, PDO::PARAM_INT);
       $result->execute();
-    }
-    $this->removemembersfromcommunity($did);
   }
 
   function addclinicstocommunity($clinic){
@@ -824,7 +843,7 @@ class Community{
     $name = strtolower(strtok($clinic['Name'], " "))."@".$temppin;
     $password = generatePIN(8);
     $password1 = Bcrypt::hashPassword($password);
-    $result = $this->db->prepare("INSERT INTO clinics (CommuID, ClinicName, Summary, Address, City, PinCode, ClinicEmail, ClinicPhone, ClinicLogo, AssistName, AssistPassword) VALUES (:CommuID, :ClinicName, :Summary, :Address, :City, :PinCode, :ClinicEmail, :ClinicPhone, :ClinicLogo, :AssistName, :AssistPassword)")
+    $result = $this->db->prepare("INSERT INTO clinics (CommuID, ClinicName, Summary, Address, City, PinCode, ClinicEmail, ClinicPhone, ClinicLogo, AssistName, AssistPassword) VALUES (:CommuID, :ClinicName, :Summary, :Address, :City, :PinCode, :ClinicEmail, :ClinicPhone, :ClinicLogo, :AssistName, :AssistPassword)");
     $result->bindParam(":CommuID", $this->commuid, PDO::PARAM_INT);
     $result->bindParam(":ClinicName", $clinic['Name'], PDO::PARAM_STR);
     $result->bindParam(":Summary", $clinic['Summary'], PDO::PARAM_STR);
@@ -836,6 +855,14 @@ class Community{
     $result->bindParam(":ClinicLogo", $clinic['ClinicLogo'], PDO::PARAM_STR);
     $result->bindParam(":AssistName", $name, PDO::PARAM_STR);
     $result->bindParam(":AssistPassword", $password1, PDO::PARAM_STR);
+    $result->execute();
+    $query = $this->db->prepare("SELECT Phone FROM user WHERE UserID = :UserID");
+    $query->bindParam(":UserID", $this->creatorid, PDO::PARAM_INT);
+    $query->execute();
+    $que = $query->fetch();
+    $phone = $que['Phone'];
+    list($otp_code,$message) = sendotp( $phone, $password, "clinicCreated", $name);
+    return $this->db->lastInsertId();
   }
 
   function removeclinicsfromcommunity($clinicid){
@@ -860,6 +887,7 @@ class Community{
     $result->bindParam(":ClinicLogo", $clinic['ClinicLogo'], PDO::PARAM_STR);
     $result->bindParam(":AssistName", $name, PDO::PARAM_STR);
     $result->bindParam(":AssistPassword", $password1, PDO::PARAM_STR);
+    $result->execute();
   }
 
   function addmemberstocommunity($userid, $type){
@@ -888,17 +916,6 @@ class Community{
   }
 }
 
-
-function createcommunity($name,$userid,$Type,$db){
-  $result = $db->prepare("INSERT INTO ComDetails (Name,ComType) VALUES (:Name,:ComType)");
-  $result->bindParam(":Name", $name, PDO::PARAM_STR);
-  $result->bindParam(":ComType", $Type, PDO::PARAM_STR);
-  $result->execute();
-  $commuid = $db->lastInsertId();
-  addmemberstocommunity($commuid,$userid,3,$db);
-  return $commuid;
-}
-
 function sharearticle($userid,$summary = null,$aid,$author,$public,$comid,$db){
    if(!$summary){
      $query = $db->prepare("SELECT UserID,Summary FROM Articles WHERE ArID = :ArID");
@@ -923,7 +940,8 @@ function sharearticle($userid,$summary = null,$aid,$author,$public,$comid,$db){
 function getcommunities($UserId,$db)
 {
   $myCommunities = array();
-  $otherCommunities = array();
+  $adminCommunities = array();
+  $connectCommunities = array();
   $following = array();
   $results = $db->prepare("SELECT * FROM Dconnection WHERE UserID = :UserID AND CommuID != 1");
   $results->bindParam(":UserID", $UserId, PDO::PARAM_INT);
@@ -938,16 +956,16 @@ function getcommunities($UserId,$db)
       $myCommunities[] = array("CID" => $row['CID'],"CommuID" => $row['CommuID'],"Type" => $detail['ComType'],"Name" => $detail['Name']);
     }
     elseif ($usertype == 2) {
-      $otherCommunities[] = array("CID" => $row['CID'],"CommuID" => $row['CommuID'],"Type" => $detail['ComType'],"Name" => $detail['Name'], "IsAdmin" => "true");
+      $adminCommunities[] = array("CID" => $row['CID'],"CommuID" => $row['CommuID'],"Type" => $detail['ComType'],"Name" => $detail['Name'], "IsAdmin" => "true");
     }
     elseif ( $usertype == 1) {
-      $otherCommunities[] = array("CID" => $row['CID'],"CommuID" => $row['CommuID'],"Type" => $detail['ComType'], "Name" => $detail['Name'], "IsAdmin" => "false");
+      $connectCommunities[] = array("CID" => $row['CID'],"CommuID" => $row['CommuID'],"Type" => $detail['ComType'], "Name" => $detail['Name'], "IsAdmin" => "false");
     }
     elseif ($usertype == 0) {
       $following[] = array("CID" => $row['CID'],"CommuID" => $row['CommuID'],"Type" => $detail['ComType'], "Name" => $detail['Name']);
     }
   }
-  return [$myCommunities,$otherCommunities,$following];
+  return [$myCommunities,$adminCommunities,$connectCommunities,$following];
 
 }
 
@@ -967,14 +985,25 @@ function sendotp($phone,$otp_code,$type,$doctor = null){
     $otpData = array();
 
   //$otp_code = generatePIN(4);
-  if($type == "pin"){
-    $message = urlencode("OTP verification code for RxHealth ". $otp_code);
-  }elseif ($type == "refer"){
-    $message = urlencode("Love this app .Download now http://tinyurl.com/rxhlth " );
-  }elseif ($type == "selfCreated" ){
+  switch($type){
+    case "pin":
+    $message = urlencode($otp_code." is your OTP verification code for RxHealth");
+    break;
+    case "refer":
+    $message = urlencode("Like this app ,to join me download now http://tinyurl.com/rxhlth " );
+    break;
+    case "selfCreated":
     $message = urlencode("Your profile is successfully created on RxHealth having userId ".$phone. " and password ". $otp_code);
-  }else if ($type == "doctorCreated"){
+    break;
+    case "doctorCreated":
     $message = urlencode($doctor." requests you to join him on RxHealth with user id ".$phone. " and password ". $otp_code ." Login and stay connected http://tinyurl.com/rxhlth " );
+    break;
+    case "clinicCreated":
+    $message = urlencode("Clinic created with Assistant UserName ".$doctor." and Password ".$otp_code);
+    break;
+    case "confirm":
+    $message = urlencode($otp_code);
+    break;
   }
 
   $postData = array(
@@ -1015,7 +1044,7 @@ function sendotp($phone,$otp_code,$type,$doctor = null){
 
   curl_close($ch);
 
-  return [$otp_code,$message];
+  return [$otp_code,$output];
 
           //$otp_code = "2527";
   //$res = sendsms($phone, $otp_code,$senderId);

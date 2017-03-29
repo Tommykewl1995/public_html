@@ -20,6 +20,9 @@ try{
     echo json_encode($status);
     die();
   }
+  $result = $db->prepare("INSERT INTO CreateRequests (UserID) VALUES (:UserID)");
+  $result->bindParam(":UserID", $obj['UserID'], PDO::PARAM_INT);
+  $result->execute();
   $query = $db->prepare("SELECT CONCAT_WS(FName, LName, ' ') AS FullName, Phone, Email FROM user WHERE UserID = :UserID");
   $query->bindParam(":UserID", $obj['UserID'], PDO::PARAM_INT);
   $query->execute();

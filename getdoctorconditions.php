@@ -32,6 +32,7 @@ try{
       $specs.=(string)$que['SpecID'].",";
     }
     $specs = substr($specs,0,-1);
+    $response['specs'] = $specs;
     $query2 = $db->prepare("SELECT c.ConditionName,c.ConditionID FROM conditionscategory cc INNER JOIN conditions c ON c.ConditionID = cc.ConditionID WHERE cc.SpecID IN (:Specs)");
     $query2->bindParam(":Specs", $specs, PDO::PARAM_INT);
   }

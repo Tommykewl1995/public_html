@@ -56,7 +56,7 @@ if($count<1)
 				$fullname = 'Dr. '.$obj['FName'].' '.$obj['LName'].' Community';
 				$result3 = $db->prepare("INSERT INTO ComDetails (CreatorID, Name, ComType) VALUES (:CreatorID, :Name, 0)");
 				$result3->bindParam(":Name", $fullname, PDO::PARAM_STR);
-				$result3->bindParam(":Name", $userid, PDO::PARAM_INT);
+				$result3->bindParam(":CreatorID", $userid, PDO::PARAM_INT);
 				$result3->execute();
 				$commuid = $db->lastInsertId();
 				$result4 = $db->prepare("INSERT INTO Dconnection (CommuID, UserID, UserType) VALUES (:CommuID, :UserID, 3)");

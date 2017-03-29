@@ -10,8 +10,8 @@ $json = file_get_contents('php://input');
 $obj = json_decode($json, true);
 
 try{
-               $result2 = $db->prepare("UPDATE Notifications SET IsViewed=1 WHERE UserID =:UserID");
-	       $result2->bindParam(':UserID', $obj['UserID'], PDO::PARAM_STR);
+               $result2 = $db->prepare("UPDATE Notifications SET IsViewed=1 WHERE UserID =:UserID AND Type != 11");
+	       $result2->bindParam(':UserID', $obj['UserID'], PDO::PARAM_INT);
 	       $result2->execute();
 
   $response['ResponseCode'] = "200";

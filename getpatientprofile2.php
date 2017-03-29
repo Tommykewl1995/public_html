@@ -115,7 +115,66 @@ $obj = json_decode($json, true);
 			else
 				$response['Email'] = "";
 
-
+			// if(isset($obj['hash'])){
+			// 	//"fLsQY1fm", "5JgED3elLS" => rohan
+			// 	// "BDPg5XsA" "2kTBfOVz3k" => tamo test
+			// 	// "epUh66ed" "iUEdomgRzR" => tamo prod
+			// 	$response['Key'] = "fLsQY1fm";
+			// 	$str = $response['Key']."|".$obj['hash']."||||||5JgED3elLS";
+			// 	$str = str_replace("FName",$response['FName'],$str);
+			// 	$email = (is_null($row['Email']))?'rohan@rxhealth.co':$row['Email'];
+			// 	$str = str_replace("Email",$response['Email'],$email);
+			// 	$hash = strtolower(hash('sha512', $str));
+			// 	$response['Hash'] = $hash;
+			// }
+			if(isset($obj['order'])){
+				$order = $obj['order'];
+				$result3 = $db->prepare("SELECT razor_order_id FROM payu WHERE txnid = :txnid");
+				$result3->bindParam(":txnid", $order['receipt'], PDO::PARAM_STR);
+				$result3->execute();
+				if($row3 = $result3->fetch()){
+					$response['id'] = $row3['razor_order_id'];
+				}else{
+					$order['currency'] = "INR";
+					$order['payment_capture'] = 1;
+					$curl = curl_init();
+					curl_setopt_array($curl, array(
+						CURLOPT_URL => "https://api.razorpay.com/v1/orders",
+						CURLOPT_RETURNTRANSFER => true,
+						CURLOPT_ENCODING => "",
+						CURLOPT_MAXREDIRS => 10,
+						CURLOPT_TIMEOUT => 30,
+						CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+						CURLOPT_CUSTOMREQUEST => "POST",
+						CURLOPT_POSTFIELDS => json_encode($order),
+						CURLOPT_HTTPHEADER => array(
+							"authorization: Basic cnpwX3Rlc3RfczdoUzZFT010bjM2UjQ6bDNOS1Z3MDZUcTZ1ZDljZmV0UWNidmpr",
+							"cache-control: no-cache",
+							"content-type: application/json"
+						),
+					));
+					$res = curl_exec($curl);
+					$err = curl_error($curl);
+					curl_close($curl);
+					if ($err) {
+						$response['ResponseCode'] = "404";
+						$response['ResponseMessage'] = "Curl Error";
+						$response['Curl Error'] = json_decode($err, true);
+					}else{
+						$res = json_decode($res, true);
+						if($res['receipt'] == $order['receipt']){
+							$result2 = $db->prepare("INSERT INTO payu (txnid,razor_order_id) VALUES (:txnid,:razor_order_id)");
+							$result2->bindParam(":txnid", $res['receipt'], PDO::PARAM_STR);
+							$result2->bindParam(":razor_order_id", $res['id'], PDO::PARAM_STR);
+							$result2->execute();
+							$response['id'] = $res['id'];
+						}else{
+							$response['ResponseCode'] = "405";
+							$response['ResponseMessage'] = "Curl request Tampered";
+						}
+					}
+				}
+			}
 			$status['Status'] = $response;
 			header('Content-type: application/json');
 			echo json_encode($status);

@@ -22,13 +22,23 @@ $sharedsymptoms = array();
 		    echo json_encode($status);
 				die();
 			}
+			$did = (isset($obj['DID']))?$obj['DID']:$obj['UserID'];
 			$statement = 'SELECT AID, PID, PFID from appointment3 bh WHERE DID=:DID';
-			if($obj['PID']){
-				$statement.=" AND PID = ".(string)$obj['PID'];
+			if(isset($obj['ClinicID'])){
+				$statement.=" AND ClinicID = :ClinicID";
+			}
+			if(isset($obj['PID'])){
+				$statement.=" AND PID = :PID";
 			}
 			$statement.= ' AND Status = "Complete" ORDER BY AID DESC';
 			$result4 = $db->prepare($statement);
-			$result4->bindParam(':DID', $obj['UserID'], PDO::PARAM_INT);
+			$result4->bindParam(':DID', $did, PDO::PARAM_INT);
+			if(isset($obj['ClinicID'])){
+				$result4->bindParam(':ClinicID', $obj['ClinicID'], PDO::PARAM_INT);
+			}
+			if(isset($obj['PID'])){
+				$result4->bindParam(':PID', $obj['PID'], PDO::PARAM_INT);
+			}
 			$result4->execute();
 			while ($row4 = $result4->fetch()){
 				$result5 = $db->prepare(" SELECT FName, LName, Pic from user u where UserID = :UserID");

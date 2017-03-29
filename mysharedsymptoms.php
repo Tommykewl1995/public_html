@@ -21,7 +21,7 @@ $sharedsymptoms = array();
 		    echo json_encode($status);
 				die();
 			}
-			$result4 = $db->prepare(" SELECT AID, DID, PFID from appointment3 where PID=:PID and Status='Active' order by AID desc ");
+			$result4 = $db->prepare(" SELECT AID, DID, PFID from appointment3 where PID=:PID and Status IN ('Active','Confirm') order by AID desc ");
 			$result4->bindParam(':PID', $obj['UserID'], PDO::PARAM_INT);
 			$result4->execute();
 			while ($row4 = $result4->fetch())

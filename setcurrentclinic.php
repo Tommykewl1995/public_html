@@ -11,14 +11,14 @@ $json = file_get_contents('php://input');
 $obj = json_decode($json, true);
 
 try {
-  if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
+  /*if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
     $response['ResponseCode'] = "400";
     $response['ResponseMessage'] = "Invalid api_key"; //user friendly message
     $status['Status'] = $response;
     header('Content-type: application/json');
     echo json_encode($status);
     die();
-  }
+  }*/
   $result = $db->prepare("UPDATE doctorprofile SET CurrClinicID = :CurrClinicID WHERE DID = :UserID");
   $result->bindParam(":CurrClinicID", $obj['ClinicID'], PDO::PARAM_INT);
   $result->bindParam(":UserID", $obj['UserID'], PDO::PARAM_INT);

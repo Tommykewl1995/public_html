@@ -20,20 +20,32 @@ try{
     die();
   }
   $doctors = array();
-  $query = $db->prepare("SELECT u.UserID,u.FName,u.LName,u.Phone,u.Email,u.Pic FROM clinicdoctors c INNER JOIN user u ON u.UserID = c.DID WHERE c.ClinicID = :ClinicID");
+  $query = $db->prepare("SELECT u.UserID,u.FName,u.LName,u.Phone,u.Email,u.Pic,c.Fees FROM clinicdoctors c INNER JOIN user u ON u.UserID = c.DID WHERE c.ClinicID = :ClinicID");
   $query->bindParam(":ClinicID", $obj['ClinicID'], PDO::PARAM_INT);
   $query->execute();
   while($que = $query->fetch()){
+    $query2 = $db->prepare("SELECT s.Speciality FROM doctorspec ds INNER JOIN speciality s ON ds.SpecID = s.SpecID WHERE DID = :DID");
+    $query2->bindParam(":DID", $que['UserID'], PDO::PARAM_INT);
+    $query2->execute();
+    $specs = "";
+    while($que2 = $query2->fetch()){
+        $specs.= $que2['Speciality'].", "; 
+    }
+    if(strlen($specs) > 0){
+        $specs = substr($specs,0,-2);
+    }
     if(is_null($que['Pic'])){
       $fpic = "http://52.24.83.227/default.png";
     }else{
-      $fpic = $row4['Pic'];
+      $fpic = $que['Pic'];
     }
     $doctors[] = array("DID" => $que['UserID'],
     "Name" => "Dr. ".(string)$que['FName']." ".(string)$que['LName'],
     "Phone" => $que['Phone'],
     "Email" => $que['Email'],
-    "Pic" => $fpic);
+    "Pic" => $fpic,
+    "Fees" => $que['Fees'],
+    "Specs" => $specs);
   }
   $response['Doctors'] = $doctors;
   $response['ResponseCode'] = "200";

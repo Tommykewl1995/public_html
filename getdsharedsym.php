@@ -14,7 +14,7 @@ $obj = json_decode($json, true);
 	try 
 		{
 
-			$result = $db->prepare("SELECT DID, PID, PFID from appointment3 where AID=:AID");
+			$result = $db->prepare("SELECT DID, PID, PFID, Status from appointment3 where AID=:AID");
 			$result->bindParam(':AID', $obj['AID'], PDO::PARAM_STR);
 			$result->execute();
 			$row = $result->fetch();
@@ -71,6 +71,7 @@ $obj = json_decode($json, true);
 			$response['PFID'] = $row['PFID'];
 			$response['condition'] = $condition;
 			$response['finalsymptoms'] = $sym;
+			$response['Status'] = $row['Status'];
 			$response['query'] = $query;
 			$status['Status'] = $response;
                         header('Content-type: application/json');

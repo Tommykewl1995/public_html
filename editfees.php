@@ -5,37 +5,27 @@ header('Access-Control-Allow-Headers: Origin, Content-Type, Accept, Authorizatio
 header('Access-Control-Allow-Credentials: true');
 //$json=$_GET ['json'];
 include('db_config.php');
-require_once 'Bcrypt.php';
 date_default_timezone_set('Asia/Kolkata');
 
 $json = file_get_contents('php://input');
 $obj = json_decode($json, true);
+
 try{
   if($obj['api_key'] != "5+`C%@>9RvJ'y?8:"){
-  $response['ResponseCode'] = "400";
+    $response['ResponseCode'] = "400";
     $response['ResponseMessage'] = "Invalid api_key"; //user friendly message
     $status['Status'] = $response;
     header('Content-type: application/json');
     echo json_encode($status);
     die();
   }
-  $query = $db->prepare("SELECT ClinicID,AssistPassword FROM clinics WHERE AssistName =:Name");
-  $query->bindParam(':Name', $obj['UserName'], PDO::PARAM_INT);
-  $query->execute();
-  $que = $query->fetch();
-  if($query->rowCount()==1){
-		if(Bcrypt::checkPassword($obj['Password'], $que['AssistPassword'])){
-			$response['ResponseCode'] = "200";
-			$response['ResponseMessage'] = "Successful Login";
-			$response['ClinicID'] = (string)$que['ClinicID'];
-		}else{
-			$response['ResponseCode'] = "500";
-			$response['ResponseMessage'] = "Phone and password mismatch! Please check";
-		}
-  }else{
-  		$response['ResponseCode'] = "500";
-  		$response['ResponseMessage'] = "No clinic present with this username";
-  }
+  $result = $db->prepare("UPDATE clinicdoctors SET Fees = :Fees WHERE ClinicID = :ClinicID AND DID = :DID");
+  $result->bindParam(":ClinicID", $obj['ClinicID'], PDO::PARAM_INT);
+  $result->bindParam(":DID", $obj['DID'], PDO::PARAM_INT);
+  $result->bindParam(":Fees", $obj['Fees'], PDO::PARAM_STR);
+  $result->execute();
+  $response['ResponseCode'] = "200";
+  $response['ResponseMessage'] = "Fees Edited";
   $status['Status'] = $response;
   header('Content-type: application/json');
   echo json_encode($status);
@@ -44,5 +34,5 @@ try{
   $response['ResponseMessage'] = "An Error occured!" . $ex; //user friendly message
   $status['Status'] = $response;
   header('Content-type: application/json');
-  echo json_encode($response);
+  echo json_encode($status);
 }
