@@ -21,48 +21,25 @@ $obj = json_decode($json, true);
 		    echo json_encode($status);
 				die();
 			}
-			$count = count($obj['Conditions']);
-			if($count<=10)
-			{
-					foreach($obj['Conditions'] as $conditions)
-				{
-						$condprob = $conditions['CondProb']*100;
-						$result5 = $db->prepare("INSERT INTO patientcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result5->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-						$result5->bindParam(':ConditionName', $conditions['ConditionName'], PDO::PARAM_STR);
-						$result5->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result5->execute();
-						$result15 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result15->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-						$result15->bindParam(':ConditionName', $conditions['ConditionName'], PDO::PARAM_STR);
-						$result15->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result15->execute();
+			for ($i=0; $i < 10; $i++){
+				$conditions = $obj['Conditions'][$i];
+		 		$condprob = $conditions['CondProb']*100;
+		 		$condname = $conditions['ConditionName'];
+				if($condname && $condprob){
+					$result5 = $db->prepare("INSERT INTO patientcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
+					$result5->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
+					$result5->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
+					$result5->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
+					$result5->execute();
+					$result15 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
+					$result15->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
+					$result15->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
+					$result15->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
+					$result15->execute();
 				}
 			}
-			else
-			{
-				for ($i=0; $i < 10; $i++)
-				{
-					$conditions = $obj['Conditions'];
-				 		$condprob = $obj['Conditions'][$i]['CondProb']*100;
-				 		$condname = $obj['Conditions'][$i]['ConditionName'];
-						$result5 = $db->prepare("INSERT INTO patientcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result5->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-						$result5->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
-						$result5->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result5->execute();
-						$result15 = $db->prepare("INSERT INTO doctorcondition (PFID, ConditionName, CondProb) VALUES (:PFID, :ConditionName, :CondProb)");
-						$result15->bindParam(':PFID', $obj['PFID'], PDO::PARAM_STR);
-						$result15->bindParam(':ConditionName', $condname, PDO::PARAM_STR);
-						$result15->bindParam(':CondProb', $condprob, PDO::PARAM_STR);
-						$result15->execute();
-				}
-			}
-
-
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "Patient Conditions Submitted";
-
 			$status['Status'] = $response;
 			header('Content-type: application/json');
 			echo json_encode($status);

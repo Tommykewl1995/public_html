@@ -35,7 +35,7 @@ $ids = array();
             $interval = $interval->format('%y');
             $name = $row['FName']." ".$row['LName'];
 
-			$query = $db->prepare(" INSERT into patientform (Name, Phone, Age, Gender, PID) values (:Name, :Phone, :Age, :Gender, :PID)");
+			$query = $db->prepare("INSERT into patientform (Name, Phone, Age, Gender, PID) values (:Name, :Phone, :Age, :Gender, :PID)");
 			$query->bindParam(':Name', $name, PDO::PARAM_STR);
 			$query->bindParam(':Phone', $row['Phone'], PDO::PARAM_STR);
 			$query->bindParam(':Age', $interval, PDO::PARAM_STR);
@@ -59,9 +59,7 @@ $ids = array();
 					$result5->execute();
 				}
 			}
-
-
-            $id = array();
+      $id = array();
 			$response['ResponseCode'] = "200";
 			$response['ResponseMessage'] = "Patient Form Submitted";
 			$response['PFID'] = (string)$pfid;
@@ -71,8 +69,6 @@ $ids = array();
 				$response['id'] = $id;
 			else
 				$response['id'] = $ids;
-
-
 			$status['Status'] = $response;
 			header('Content-type: application/json');
 			echo json_encode($status);
